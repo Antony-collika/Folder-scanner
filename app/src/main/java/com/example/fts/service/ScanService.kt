@@ -10,7 +10,8 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.example.fts.R
 import com.example.fts.data.cache.CacheManager
-import com.example.fts.data.model.RootFolder
+import com.example.fts.data.model.Diff
+import com.example.fts.data.model.Snapshot
 import com.example.fts.data.model.ScanOptions
 import com.example.fts.data.repository.RootFolderRepository
 import com.example.fts.domain.diff.DiffEngine
@@ -30,8 +31,6 @@ class ScanService : Service() {
     
     private val serviceScope = CoroutineScope(Dispatchers.IO)
     private var scanJob: Job? = null
-    private var currentNotification: Notification? = null
-    private var currentCount = 0
     private var isCancelled = false
     
     private lateinit var scanner: Scanner
@@ -55,7 +54,7 @@ class ScanService : Service() {
             return START_NOT_STICKY
         }
         
-        startForeground(createNotification("Dang khoi dong...", 0))
+        startForeground(createNotification("Starting scan...", 0))
         
         scanJob = serviceScope.launch {
             try {
@@ -64,8 +63,7 @@ class ScanService : Service() {
                 
                 val snapshot = scanner.scan(uri, rootName, options) { progress ->
                     if (isActive && !isCancelled) {
-                        currentCount = progress.count
-                        updateNotification("Dang quet ${rootName}...", progress.count)
+                        updateNotification("Scanning...", progress.count)
                     }
                 }
                 
@@ -79,22 +77,19 @@ class ScanService : Service() {
                     ))
                 }
                 
-                var diff = if (isIncremental) {
+                var diff: Diff? = null
+                if (isIncremental) {
                     val oldSnapshot = cacheManager.load(rootUri)
                     if (oldSnapshot != null) {
-                        DiffEngine.compare(oldSnapshot, snapshot)
-                    } else {
-                        null
+                        diff = DiffEngine.compare(oldSnapshot, snapshot)
                     }
-                } else {
-                    null
                 }
                 
                 showCompleteNotification(rootName, snapshot.stats.totalEntries, diff?.totalChanges)
                 
             } catch (e: Exception) {
-                Logging.e("Loi khi quet: ${e.message}", e)
-                showErrorNotification(rootName, e.message ?: "Loi khong xac dinh")
+                Logging.e("Scan error: ${e.message}", e)
+                showErrorNotification(rootName, e.message ?: "Unknown error")
             } finally {
                 if (!isCancelled) {
                     stopForeground(true)
@@ -127,7 +122,7 @@ class ScanService : Service() {
             .setContentIntent(pendingIntent)
             .setProgress(0, 0, true)
             .setOngoing(true)
-            .addAction(R.drawable.ic_cancel, "Huy") {
+            .addAction(R.drawable.ic_error, "Cancel") {
                 isCancelled = true
                 scanJob?.cancel()
                 stopForeground(true)
@@ -137,16 +132,16 @@ class ScanService : Service() {
     }
     
     private fun updateNotification(message: String, count: Int) {
-        currentNotification = createNotification(message, count)
+        val notification = createNotification(message, count)
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(Constants.NOTIFICATION_ID_SCAN, currentNotification)
+        notificationManager.notify(Constants.NOTIFICATION_ID_SCAN, notification)
     }
     
     private fun showCompleteNotification(rootName: String, totalEntries: Int, changeCount: Int?) {
         val message = if (changeCount != null && changeCount > 0) {
-            "Da quet xong ${rootName}: ${totalEntries} muc, co ${changeCount} thay doi"
+            "Scan complete: $rootName: $totalEntries entries, $changeCount changes"
         } else {
-            "Da quet xong ${rootName}: ${totalEntries} muc"
+            "Scan complete: $rootName: $totalEntries entries"
         }
         
         val intent = Intent(this, TreeActivity::class.java).apply {
@@ -155,7 +150,7 @@ class ScanService : Service() {
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
         
         val notification = NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID)
-            .setContentTitle("Quet hoan tat")
+            .setContentTitle("Scan Complete")
             .setContentText(message)
             .setSmallIcon(R.drawable.ic_check)
             .setContentIntent(pendingIntent)
@@ -170,8 +165,8 @@ class ScanService : Service() {
     
     private fun showErrorNotification(rootName: String, error: String) {
         val notification = NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID)
-            .setContentTitle("Loi khi quet")
-            .setContentText("Quet ${rootName} that bai: ${error}")
+            .setContentTitle("Scan Error")
+            .setContentText("Failed to scan $rootName: $error")
             .setSmallIcon(R.drawable.ic_error)
             .setAutoCancel(true)
             .setOngoing(false)
