@@ -5,15 +5,23 @@ import java.util.Date
 import java.util.Locale
 
 object DateFormatter {
-    
-    private val dateTimeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-    private val iso8601Format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault())
-    
-    fun format(timestamp: Long): String {
+    private const val DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss"
+    private const val DATE_PATTERN = "yyyy-MM-dd"
+    private const val TIME_PATTERN = "HH:mm:ss"
+
+    private val dateTimeFormat = SimpleDateFormat(DATE_TIME_PATTERN, Locale.getDefault())
+    private val dateFormat = SimpleDateFormat(DATE_PATTERN, Locale.getDefault())
+    private val timeFormat = SimpleDateFormat(TIME_PATTERN, Locale.getDefault())
+
+    fun formatDateTime(timestamp: Long): String {
         return dateTimeFormat.format(Date(timestamp))
     }
-    
-    fun formatIso8601(timestamp: Long): String {
-        return iso8601Format.format(Date(timestamp))
+
+    fun formatDate(timestamp: Long): String {
+        return dateFormat.format(Date(timestamp))
+    }
+
+    fun formatTime(timestamp: Long): String {
+        return timeFormat.format(Date(timestamp))
     }
 }
