@@ -15,7 +15,7 @@ class SafTreeReader(private val context: Context) {
         onProgress: (ScanProgress) -> Unit
     ): Entry {
         val rootDoc = SafDocument.fromTreeUri(context, rootUri)
-            ?: throw SafException("Khong mo duoc thu muc goc")
+            ?: throw SafException("Cannot open root directory")
         
         val rootEntry = Entry(
             name = rootDoc.name ?: "root",
