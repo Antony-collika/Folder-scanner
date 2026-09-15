@@ -22,7 +22,7 @@ class CacheManager(private val context: Context) {
         try {
             file.writeText(json.encodeToString(snapshot))
         } catch (e: Exception) {
-            Log.e("CacheManager", "Loi khi luu cache: ${file.name}", e)
+            Log.e("CacheManager", "Error saving cache: ${file.name}", e)
         }
     }
     
@@ -33,7 +33,7 @@ class CacheManager(private val context: Context) {
         return try {
             json.decodeFromString<Snapshot>(file.readText())
         } catch (e: Exception) {
-            Log.e("CacheManager", "Cache hong: ${file.name}", e)
+            Log.e("CacheManager", "Corrupted cache: ${file.name}", e)
             file.delete()
             null
         }
