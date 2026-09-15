@@ -1,129 +1,123 @@
 package com.example.fts.ui.main
 
-import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.provider.DocumentsContract
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.fts.R
 import com.example.fts.data.model.RootFolder
 import com.example.fts.data.repository.RootFolderRepository
-import com.example.fts.data.saf.SafPermission
-import com.example.fts.databinding.ActivityMainBinding
+import com.example.fts.service.ScanService
+import com.example.fts.ui.cache.CacheManageActivity
 import com.example.fts.ui.settings.SettingsActivity
 import com.example.fts.ui.tree.TreeActivity
+import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
-    
-    private lateinit var binding: ActivityMainBinding
+
     private lateinit var viewModel: MainViewModel
     private lateinit var adapter: RootFolderAdapter
-    
-    private val pickFolderLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            result.data?.data?.let { uri ->
-                handleFolderSelected(uri)
-            }
-        }
+    private lateinit var recyclerView: RecyclerView
+
+    private val selectFolderLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri?.let { onFolderSelected(it) }
     }
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        
-        setSupportActionBar(binding.toolbar)
-        
-        viewModel = MainViewModel(RootFolderRepository(this))
-        
-        setupRecyclerView()
-        setupObservers()
-        setupClickListeners()
+        setContentView(R.layout.activity_main)
+
+        setSupportActionBar(findViewById(R.id.toolbar))
+        supportActionBar?.title = "Folder Tree Snapshot"
+
+        viewModel = MainViewModel(application)
+        recyclerView = findViewById(R.id.recyclerView)
+
+        adapter = RootFolderAdapter(
+            onClick = { rootFolder ->
+                val intent = Intent(this, TreeActivity::class.java).apply {
+                    putExtra(TreeActivity.EXTRA_ROOT_URI, rootFolder.uri)
+                    putExtra(TreeActivity.EXTRA_DISPLAY_NAME, rootFolder.displayName)
+                }
+                startActivity(intent)
+            },
+            onScanClick = { rootFolder ->
+                startScanService(rootFolder.uri, rootFolder.displayName, false)
+            }
+        )
+
+        recyclerView.layoutManager = GridLayoutManager(this, 2)
+        recyclerView.adapter = adapter
+
+        viewModel.rootFolders.observe(this) { rootFolders ->
+            adapter.submitList(rootFolders)
+        }
+
+        findViewById<android.widget.Button>(R.id.btn_select_folder).setOnClickListener {
+            selectFolderLauncher.launch(null)
+        }
     }
-    
+
+    private fun onFolderSelected(uri: Uri) {
+        val displayName = getDisplayName(uri)
+        val rootFolder = RootFolder(
+            uri = uri.toString(),
+            displayName = displayName,
+            addedAt = System.currentTimeMillis()
+        )
+
+        if (viewModel.rootFolders.value?.any { it.uri == rootFolder.uri } == true) {
+            Toast.makeText(this, "Folder already added", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        viewModel.saveRootFolder(rootFolder)
+        startScanService(rootFolder.uri, rootFolder.displayName, false)
+    }
+
+    private fun getDisplayName(uri: Uri): String {
+        val path = uri.path ?: return "Folder " + UUID.randomUUID().toString().take(8)
+        val segments = path.split("/").filter { it.isNotEmpty() }
+        return segments.lastOrNull() ?: "Folder"
+    }
+
+    private fun startScanService(rootUri: String, displayName: String, isIncremental: Boolean) {
+        val intent = Intent(this, ScanService::class.java).apply {
+            putExtra(com.example.fts.util.Constants.EXTRA_URI, rootUri)
+            putExtra(com.example.fts.util.Constants.EXTRA_DISPLAY_NAME, displayName)
+            putExtra(com.example.fts.util.Constants.EXTRA_INCREMENTAL, isIncremental)
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
         return true
     }
-    
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_settings -> {
                 startActivity(Intent(this, SettingsActivity::class.java))
                 true
             }
+            R.id.action_cache_management -> {
+                startActivity(Intent(this, CacheManageActivity::class.java))
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
-    
-    private fun setupRecyclerView() {
-        adapter = RootFolderAdapter { rootFolder ->
-            openTreeActivity(rootFolder)
-        }
-        
-        binding.recyclerView.layoutManager = LinearLayoutManager(this)
-        binding.recyclerView.adapter = adapter
-    }
-    
-    private fun setupObservers() {
-        viewModel.rootFolders.observe(this) { folders ->
-            adapter.submitList(folders)
-            binding.emptyView.visibility = if (folders.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
-        }
-    }
-    
-    private fun setupClickListeners() {
-        binding.fabChooseFolder.setOnClickListener {
-            openFolderPicker()
-        }
-    }
-    
-    private fun openFolderPicker() {
-        val intent = Intent(DocumentsContract.ACTION_OPEN_DOCUMENT_TREE).apply {
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-        }
-        pickFolderLauncher.launch(intent)
-    }
-    
-    private fun handleFolderSelected(uri: Uri) {
-        val hasPermission = SafPermission.takePersistableUriPermission(this, uri)
-        
-        val displayName = DocumentsContract.getTreeDocumentId(uri)
-            .split(":").lastOrNull() ?: "Thu muc"
-        
-        val existing = viewModel.getFolderByUri(uri.toString())
-        if (existing != null) {
-            Toast.makeText(this, "Thu muc nay da co trong danh sach", Toast.LENGTH_SHORT).show()
-            return
-        }
-        
-        val rootFolder = RootFolder(
-            uri = uri.toString(),
-            displayName = displayName,
-            addedAt = System.currentTimeMillis()
-        )
-        
-        if (viewModel.addRootFolder(rootFolder)) {
-            Toast.makeText(this, "Da them thu muc", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(this, "Khong the them thu muc", Toast.LENGTH_SHORT).show()
-        }
-    }
-    
-    private fun openTreeActivity(rootFolder: RootFolder) {
-        val intent = Intent(this, TreeActivity::class.java).apply {
-            putExtra(TreeActivity.EXTRA_ROOT_URI, rootFolder.uri)
-            putExtra(TreeActivity.EXTRA_ROOT_NAME, rootFolder.displayName)
-        }
-        startActivity(intent)
-    }
-
 }
