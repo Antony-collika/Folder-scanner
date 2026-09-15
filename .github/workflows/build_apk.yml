@@ -32,6 +32,3 @@ jobs:
         name: app-debug.apk
         path: app/build/outputs/apk/debug/app-debug.apk
         retention-days: 7
-
-    - name: List build outputs
-      run: ls -R app/build/outputs/
