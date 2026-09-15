@@ -70,7 +70,6 @@ dependencies {
 
     // Activity
     implementation("androidx.activity:activity-ktx:1.8.0")
-    implementation("androidx.activity:activity-compose:1.8.0")
 
     // RecyclerView
     implementation("androidx.recyclerview:recyclerview:1.3.2")
