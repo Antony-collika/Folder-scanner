@@ -7,6 +7,7 @@ import com.example.fts.data.model.Entry
 import com.example.fts.data.model.ScanOptions
 import com.example.fts.data.model.Snapshot
 import com.example.fts.data.model.SnapshotStats
+import com.example.fts.data.saf.SafDocument
 import com.example.fts.data.saf.SafTreeReader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -70,10 +71,29 @@ class Scanner(
         )
     }
     
+    // FIX: estimateCount now counts entire tree (limited to 10000 for speed)
     suspend fun estimateCount(rootUri: Uri): Int = withContext(Dispatchers.IO) {
         try {
-            val rootDoc = com.example.fts.data.saf.SafDocument.fromTreeUri(context, rootUri)
-            rootDoc?.listFiles()?.count() ?: 0
+            val rootDoc = SafDocument.fromTreeUri(context, rootUri) ?: return@withContext 0
+            var count = 0
+            val stack = ArrayDeque<SafDocument>()
+            stack.addLast(rootDoc)
+            
+            // Limit to avoid taking too long
+            val maxCount = 10000
+            
+            while (stack.isNotEmpty() && count < maxCount) {
+                val doc = stack.removeLast()
+                count++
+                
+                if (doc.isDirectory) {
+                    doc.listFiles()?.forEach { 
+                        stack.addLast(it) 
+                    }
+                }
+            }
+            
+            count
         } catch (e: Exception) {
             0
         }
