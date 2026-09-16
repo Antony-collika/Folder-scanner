@@ -59,15 +59,10 @@ class TreeViewModel(private val rootUri: String, val displayName: String, applic
     }
 
     private fun updateTree(snapshot: Snapshot) {
-        val sortOrder = settingsRepository.sortOrder()
-        val flattened = TreeFlattener.flatten(snapshot.root, expandedFolders, sortOrder)
-        if (query.isBlank()) {
-            _treeItems.value = flattened
-            return
-        }
+        val flattened = TreeFlattener.flatten(snapshot.root, expandedFolders, settingsRepository.sortOrder())
+        if (query.isBlank()) { _treeItems.value = flattened; return }
         val matches = flattened.filter { it.entry.name.contains(query, true) || it.entry.path.contains(query, true) }
         val visibleIds = matches.mapTo(mutableSetOf()) { it.entry.documentId }
-        // Keep the complete ancestor chain so search results retain useful context.
         matches.forEach { match ->
             val parts = match.entry.path.split('/').filter { it.isNotBlank() }
             var prefix = ""
@@ -80,31 +75,15 @@ class TreeViewModel(private val rootUri: String, val displayName: String, applic
     }
 
     fun search(value: String) { query = value.trim(); _snapshot.value?.let(::updateTree) }
-    fun toggleFolder(documentId: String) {
-        if (!expandedFolders.add(documentId)) expandedFolders.remove(documentId)
-        _snapshot.value?.let(::updateTree)
-    }
-    fun rescan() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            scanFresh()
-            _isLoading.value = false
-        }
-    }
+    fun toggleFolder(documentId: String) { if (!expandedFolders.add(documentId)) expandedFolders.remove(documentId); _snapshot.value?.let(::updateTree) }
+    fun rescan() { viewModelScope.launch { _isLoading.value = true; scanFresh(); _isLoading.value = false } }
     fun requestShowDiff() { _showDiff.value = true }
     fun prepareExport(content: String, type: String) { pendingExport = content to type }
     fun onExportFileCreated(uri: Uri) {
-        pendingExport?.let { (content, _) ->
-            viewModelScope.launch {
-                try {
-                    getApplication<Application>().contentResolver.openOutputStream(uri)?.use { it.write(content.toByteArray(Charsets.UTF_8)) }
-                        ?: error("Không thể mở tệp đích")
-                    _exportResult.value = Result.success(Unit)
-                } catch (e: Exception) { _exportResult.value = Result.failure(e) }
-            }
-        }
+        pendingExport?.let { (content, _) -> viewModelScope.launch { try { getApplication<Application>().contentResolver.openOutputStream(uri)?.use { it.write(content.toByteArray(Charsets.UTF_8)) } ?: error("Không thể mở tệp đích"); _exportResult.value = Result.success(Unit) } catch (e: Exception) { _exportResult.value = Result.failure(e) } } }
         pendingExport = null
     }
+    fun setSortOrder(value: String) { settingsRepository.setSortOrder(value); _snapshot.value?.let(::updateTree) }
     fun markdownModel() = settingsRepository.markdownModel()
     fun showMetadataInMarkdown() = settingsRepository.showMetadataInMarkdown()
     fun sortOrder() = settingsRepository.sortOrder()
