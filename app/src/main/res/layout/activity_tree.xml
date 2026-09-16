@@ -66,7 +66,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginTop="12dp"
         android:layout_marginEnd="16dp"
-        app:boxBackgroundMode="outlined"
+        app:boxBackgroundMode="outline"
         app:startIconDrawable="@android:drawable/ic_menu_search">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/searchInput"
