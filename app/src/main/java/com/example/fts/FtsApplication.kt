@@ -11,7 +11,6 @@ class FtsApplication : Application() {
     
     override fun onCreate() {
         super.onCreate()
-        
         createNotificationChannel()
     }
     
@@ -20,7 +19,7 @@ class FtsApplication : Application() {
             val channel = NotificationChannel(
                 Constants.NOTIFICATION_CHANNEL_ID,
                 Constants.NOTIFICATION_CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Thong bao ve tien trinh quet thu muc"
                 setShowBadge(false)
