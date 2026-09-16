@@ -2,18 +2,17 @@
 <androidx.core.widget.LinearLayoutCompat
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:padding="12dp">
-
     <ImageView
         android:id="@+id/icon"
         android:layout_width="24dp"
         android:layout_height="24dp"
         android:contentDescription="File type icon" />
-
     <ImageView
         android:id="@+id/expandIcon"
         android:layout_width="24dp"
@@ -21,7 +20,6 @@
         android:layout_marginStart="8dp"
         android:visibility="gone"
         android:contentDescription="Expand/collapse" />
-
     <TextView
         android:id="@+id/name"
         android:layout_width="0dp"
@@ -30,7 +28,6 @@
         android:layout_marginStart="8dp"
         android:textSize="16sp"
         tools:text="Folder name" />
-
     <TextView
         android:id="@+id/size"
         android:layout_width="wrap_content"
@@ -39,5 +36,4 @@
         android:textColor="?android:attr/textColorSecondary"
         android:visibility="gone"
         tools:text="12.3 MB" />
-
 </androidx.core.widget.LinearLayoutCompat>
