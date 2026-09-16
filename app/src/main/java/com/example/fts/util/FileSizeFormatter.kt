@@ -15,4 +15,7 @@ object FileSizeFormatter {
             else -> "$bytes bytes"
         }
     }
+
+    fun formatSize(bytes: Long): String = format(bytes)
+    fun formatCount(count: Int): String = count.toString()
 }
