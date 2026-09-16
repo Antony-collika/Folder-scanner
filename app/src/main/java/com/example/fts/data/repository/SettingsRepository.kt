@@ -23,10 +23,8 @@ class SettingsRepository(context: Context) {
         "C" -> MarkdownModel.C
         else -> MarkdownModel.D
     }
-
     fun showMetadataInMarkdown(): Boolean = preferences.getBoolean("show_metadata_in_md", false)
-
     fun sortOrder(): String = preferences.getString("sort_order", "name") ?: "name"
-
+    fun setSortOrder(value: String) { preferences.edit().putString("sort_order", value).apply() }
     fun notificationOnScanComplete(): Boolean = preferences.getBoolean("notification_on_scan_complete", true)
 }
