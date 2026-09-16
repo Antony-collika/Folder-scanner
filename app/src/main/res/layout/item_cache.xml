@@ -8,7 +8,7 @@
     android:layout_margin="8dp"
     app:cardCornerRadius="8dp"
     app:cardElevation="2dp">
-    <androidx.core.widget.LinearLayoutCompat
+    <androidx.appcompat.widget.LinearLayoutCompat
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -40,5 +40,5 @@
             app:iconGravity="start"
             app:iconPadding="4dp"
             app:iconTint="@color/removed_color" />
-    </androidx.core.widget.LinearLayoutCompat>
+    </androidx.appcompat.widget.LinearLayoutCompat>
 </androidx.cardview.widget.CardView>
