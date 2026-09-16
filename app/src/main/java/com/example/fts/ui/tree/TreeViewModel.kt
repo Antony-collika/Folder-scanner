@@ -9,6 +9,8 @@ import com.example.fts.data.cache.CacheManager
 import com.example.fts.data.model.Snapshot
 import com.example.fts.domain.flatten.FlatNode
 import com.example.fts.domain.flatten.TreeFlattener
+import com.example.fts.domain.scanner.Scanner
+import com.example.fts.data.model.ScanOptions
 import kotlinx.coroutines.launch
 
 class TreeViewModel(
@@ -17,6 +19,7 @@ class TreeViewModel(
     application: Application
 ) : AndroidViewModel(application) {
     private val cacheManager = CacheManager(application)
+    private val scanner = Scanner(application, cacheManager)
     private val expandedFolders = mutableSetOf<String>()
     private val _treeItems = MutableLiveData<List<FlatNode>>()
     val treeItems: LiveData<List<FlatNode>> = _treeItems
@@ -34,8 +37,25 @@ class TreeViewModel(
                 cacheManager.load(rootUri)?.let {
                     _snapshot.value = it
                     updateTree(it)
-                } ?: run { _snapshot.value = null }
-            } catch (_: Exception) { _snapshot.value = null }
+                } ?: run { 
+                    // FIX: If no cache, scan fresh
+                    scanFresh()
+                }
+            } catch (e: Exception) { 
+                _snapshot.value = null 
+            }
+        }
+    }
+
+    private suspend fun scanFresh() {
+        try {
+            val uri = android.net.Uri.parse(rootUri)
+            val snapshot = scanner.scan(uri, displayName, ScanOptions())
+            cacheManager.save(rootUri, snapshot)
+            _snapshot.value = snapshot
+            updateTree(snapshot)
+        } catch (e: Exception) {
+            _snapshot.value = null
         }
     }
 
@@ -48,9 +68,19 @@ class TreeViewModel(
         _snapshot.value?.let { updateTree(it) }
     }
 
-    fun rescan() = loadData()
-    fun requestShowDiff() { _showDiff.value = true }
-    fun prepareExport(content: String, type: String) { pendingExport = content to type }
+    fun rescan() {
+        viewModelScope.launch {
+            scanFresh()
+        }
+    }
+    
+    fun requestShowDiff() { 
+        _showDiff.value = true 
+    }
+    
+    fun prepareExport(content: String, type: String) { 
+        pendingExport = content to type 
+    }
 
     fun onExportFileCreated(uri: android.net.Uri) {
         pendingExport?.let { (content, _) ->
@@ -58,7 +88,9 @@ class TreeViewModel(
                 try {
                     getApplication<Application>().contentResolver.openOutputStream(uri)?.use { it.write(content.toByteArray()) }
                     _exportResult.value = Result.success(Unit)
-                } catch (e: Exception) { _exportResult.value = Result.failure(e) }
+                } catch (e: Exception) { 
+                    _exportResult.value = Result.failure(e) 
+                }
             }
         }
         pendingExport = null
