@@ -1,38 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.appcompat.widget.LinearLayoutCompat
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="12dp">
+    android:minHeight="52dp"
+    android:paddingStart="12dp"
+    android:paddingTop="7dp"
+    android:paddingEnd="12dp"
+    android:paddingBottom="7dp"
+    android:foreground="?attr/selectableItemBackground">
+    <TextView
+        android:id="@+id/prefix"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:includeFontPadding="false"
+        tools:text="├── " />
     <ImageView
         android:id="@+id/icon"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        android:contentDescription="File type icon" />
+        android:layout_marginStart="2dp"
+        android:contentDescription="Loại mục" />
     <ImageView
         android:id="@+id/expandIcon"
         android:layout_width="24dp"
         android:layout_height="24dp"
-        android:layout_marginStart="8dp"
-        android:visibility="gone"
-        android:contentDescription="Expand/collapse" />
+        android:layout_marginStart="4dp"
+        android:contentDescription="Mở rộng hoặc thu gọn" />
     <TextView
         android:id="@+id/name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="8dp"
-        android:textSize="16sp"
-        tools:text="Folder name" />
+        android:layout_marginStart="6dp"
+        android:ellipsize="middle"
+        android:maxLines="2"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        tools:text="Folder name/" />
     <TextView
         android:id="@+id/size"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="14sp"
+        android:layout_marginStart="8dp"
+        android:textAppearance="?attr/textAppearanceBodySmall"
         android:textColor="?android:attr/textColorSecondary"
         android:visibility="gone"
         tools:text="12.3 MB" />
