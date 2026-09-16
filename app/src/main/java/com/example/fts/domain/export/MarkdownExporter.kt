@@ -9,14 +9,14 @@ import com.example.fts.util.FileSizeFormatter
 import com.example.fts.util.MarkdownEscape
 
 object MarkdownExporter {
-    fun export(snapshot: Snapshot, model: MarkdownModel, showMetadata: Boolean = false): String {
+    fun export(snapshot: Snapshot, model: MarkdownModel, showMetadata: Boolean = false, sortOrder: String = "name"): String {
         val sb = StringBuilder()
         appendHeader(sb, snapshot)
         when (model) {
-            MarkdownModel.A -> exportModelA(sb, snapshot.root, 1, showMetadata)
-            MarkdownModel.B -> exportModelB(sb, snapshot.root, 1, showMetadata)
-            MarkdownModel.C -> exportModelC(sb, snapshot.root, 0, showMetadata)
-            MarkdownModel.D -> exportModelD(sb, snapshot.root, showMetadata)
+            MarkdownModel.A -> exportModelA(sb, snapshot.root, 1, showMetadata, sortOrder)
+            MarkdownModel.B -> exportModelB(sb, snapshot.root, 1, showMetadata, sortOrder)
+            MarkdownModel.C -> exportModelC(sb, snapshot.root, 0, showMetadata, sortOrder)
+            MarkdownModel.D -> exportModelD(sb, snapshot.root, showMetadata, sortOrder)
         }
         return sb.toString()
     }
@@ -39,60 +39,61 @@ object MarkdownExporter {
         sb.appendLine("${indent}> Metadata: size=$size; modified=${DateFormatter.formatDateTime(entry.modified)}; mime=${entry.mime ?: "N/A"}")
     }
 
-    private fun exportModelA(sb: StringBuilder, entry: Entry, level: Int, showMetadata: Boolean) {
+    private fun exportModelA(sb: StringBuilder, entry: Entry, level: Int, showMetadata: Boolean, sortOrder: String) {
         val indent = "  ".repeat(level - 1)
         if (entry.type == EntryType.FOLDER) {
             sb.appendLine("$indent${"#".repeat(level)} ${MarkdownEscape.escape(entry.name)}")
             if (showMetadata) appendMetadata(sb, entry, indent)
-            entry.children?.forEach { exportModelA(sb, it, level + 1, showMetadata) }
+            sortedChildren(entry, sortOrder).forEach { exportModelA(sb, it, level + 1, showMetadata, sortOrder) }
         } else {
             sb.appendLine("$indent- ${MarkdownEscape.escape(entry.name)}")
             if (showMetadata) appendMetadata(sb, entry, indent + "  ")
         }
     }
 
-    private fun exportModelB(sb: StringBuilder, entry: Entry, level: Int, showMetadata: Boolean) {
+    private fun exportModelB(sb: StringBuilder, entry: Entry, level: Int, showMetadata: Boolean, sortOrder: String) {
         val indent = "  ".repeat(level - 1)
         if (entry.type == EntryType.FOLDER) {
             sb.appendLine("$indent${"#".repeat(level)} ${MarkdownEscape.escape(entry.name)}")
             if (showMetadata) appendMetadata(sb, entry, indent)
             sb.appendLine("$indent---")
-            entry.children?.forEach { exportModelB(sb, it, level + 1, showMetadata) }
+            sortedChildren(entry, sortOrder).forEach { exportModelB(sb, it, level + 1, showMetadata, sortOrder) }
         } else {
             sb.appendLine("$indent${MarkdownEscape.escape(entry.name)}")
             if (showMetadata) appendMetadata(sb, entry, indent)
         }
     }
 
-    private fun exportModelC(sb: StringBuilder, entry: Entry, depth: Int, showMetadata: Boolean) {
+    private fun exportModelC(sb: StringBuilder, entry: Entry, depth: Int, showMetadata: Boolean, sortOrder: String) {
         val indent = "  ".repeat(depth)
         val suffix = if (entry.type == EntryType.FOLDER) "/" else ""
         sb.appendLine("$indent- ${MarkdownEscape.escape(entry.name)}$suffix")
         if (showMetadata) appendMetadata(sb, entry, indent + "  ")
-        entry.children?.forEach { exportModelC(sb, it, depth + 1, showMetadata) }
+        sortedChildren(entry, sortOrder).forEach { exportModelC(sb, it, depth + 1, showMetadata, sortOrder) }
     }
 
-    private fun exportModelD(sb: StringBuilder, root: Entry, showMetadata: Boolean) {
+    private fun exportModelD(sb: StringBuilder, root: Entry, showMetadata: Boolean, sortOrder: String) {
         sb.appendLine("${MarkdownEscape.escape(root.name)}/")
         if (showMetadata) appendMetadata(sb, root, "")
-        appendAsciiTree(sb, root, "", showMetadata)
+        appendAsciiTree(sb, root, "", showMetadata, sortOrder)
     }
 
-    private fun appendAsciiTree(sb: StringBuilder, entry: Entry, prefix: String, showMetadata: Boolean) {
-        val children = entry.children ?: return
+    private fun appendAsciiTree(sb: StringBuilder, entry: Entry, prefix: String, showMetadata: Boolean, sortOrder: String) {
+        val children = sortedChildren(entry, sortOrder)
         children.forEachIndexed { index, child ->
             val isLast = index == children.lastIndex
             val connector = if (isLast) "└── " else "├── "
             val suffix = if (child.type == EntryType.FOLDER) "/" else ""
             sb.appendLine("$prefix$connector${MarkdownEscape.escape(child.name)}$suffix")
-            if (showMetadata) {
-                val metadataPrefix = prefix + if (isLast) "    " else "│   "
-                appendMetadata(sb, child, metadataPrefix)
-            }
-            if (child.type == EntryType.FOLDER) {
-                val newPrefix = prefix + if (isLast) "    " else "│   "
-                appendAsciiTree(sb, child, newPrefix, showMetadata)
-            }
+            if (showMetadata) appendMetadata(sb, child, prefix + if (isLast) "    " else "│   ")
+            if (child.type == EntryType.FOLDER) appendAsciiTree(sb, child, prefix + if (isLast) "    " else "│   ", showMetadata, sortOrder)
         }
+    }
+
+    private fun sortedChildren(entry: Entry, sortOrder: String): List<Entry> = when (sortOrder) {
+        "date" -> (entry.children ?: emptyList()).sortedWith(compareByDescending<Entry> { it.modified }.thenBy { it.name.lowercase() })
+        "size" -> (entry.children ?: emptyList()).sortedWith(compareByDescending<Entry> { it.size ?: -1L }.thenBy { it.name.lowercase() })
+        "type" -> (entry.children ?: emptyList()).sortedWith(compareBy<Entry> { if (it.type == EntryType.FOLDER) 0 else 1 }.thenBy { it.name.lowercase() })
+        else -> (entry.children ?: emptyList()).sortedWith(compareBy<Entry> { if (it.type == EntryType.FOLDER) 0 else 1 }.thenBy { it.name.lowercase() })
     }
 }
