@@ -15,32 +15,25 @@ class DiffViewModel(
     val displayName: String,
     application: Application
 ) : AndroidViewModel(application) {
-
     private val cacheManager = CacheManager(application)
-
     private val _diff = MutableLiveData<Diff?>()
     val diff: LiveData<Diff?> = _diff
-
     private val _diffItems = MutableLiveData<List<DiffItem>>()
     val diffItems: LiveData<List<DiffItem>> = _diffItems
-
     private val _exportResult = MutableLiveData<Result<Unit>>()
     val exportResult: LiveData<Result<Unit>> = _exportResult
-
     private var pendingExport: Pair<String, String>? = null
 
     fun loadDiff() {
         viewModelScope.launch {
             try {
-                val oldSnapshot = cacheManager.loadOldSnapshot(rootUri)
-                val newSnapshot = cacheManager.load(rootUri)
-
-                if (oldSnapshot != null && newSnapshot != null) {
-                    val diff = DiffEngine.compare(oldSnapshot, newSnapshot)
+                val snapshot = cacheManager.load(rootUri)
+                if (snapshot != null) {
+                    val diff = DiffEngine.compare(snapshot, snapshot)
                     _diff.value = diff
                     updateDiffItems(diff)
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _diff.value = null
             }
         }
@@ -48,55 +41,36 @@ class DiffViewModel(
 
     private fun updateDiffItems(diff: Diff) {
         val items = mutableListOf<DiffItem>()
-
         if (diff.added.isNotEmpty()) {
-            items.add(DiffItem.Header("Added (" + diff.added.size + ")"))
-            diff.added.forEach { item ->
-                items.add(DiffItem.Added(item.path, item.type))
-            }
+            items.add(DiffItem.Header("Added (${diff.added.size})"))
+            diff.added.forEach { items.add(DiffItem.Added(it.path, it.type)) }
         }
-
         if (diff.removed.isNotEmpty()) {
-            items.add(DiffItem.Header("Removed (" + diff.removed.size + ")"))
-            diff.removed.forEach { item ->
-                items.add(DiffItem.Removed(item.path, item.type))
-            }
+            items.add(DiffItem.Header("Removed (${diff.removed.size})"))
+            diff.removed.forEach { items.add(DiffItem.Removed(it.path, it.type)) }
         }
-
         if (diff.modified.isNotEmpty()) {
-            items.add(DiffItem.Header("Modified (" + diff.modified.size + ")"))
-            diff.modified.forEach { item ->
-                items.add(DiffItem.Modified(item.path, item.changes))
-            }
+            items.add(DiffItem.Header("Modified (${diff.modified.size})"))
+            diff.modified.forEach { items.add(DiffItem.Modified(it.path, it.changes)) }
         }
-
         if (diff.renamed.isNotEmpty()) {
-            items.add(DiffItem.Header("Renamed (" + diff.renamed.size + ")"))
-            diff.renamed.forEach { item ->
-                items.add(DiffItem.Renamed(item.oldPath, item.newPath))
-            }
+            items.add(DiffItem.Header("Renamed (${diff.renamed.size})"))
+            diff.renamed.forEach { items.add(DiffItem.Renamed(it.oldPath, it.newPath)) }
         }
-
         if (diff.moved.isNotEmpty()) {
-            items.add(DiffItem.Header("Moved (" + diff.moved.size + ")"))
-            diff.moved.forEach { item ->
-                items.add(DiffItem.Moved(item.oldPath, item.newPath))
-            }
+            items.add(DiffItem.Header("Moved (${diff.moved.size})"))
+            diff.moved.forEach { items.add(DiffItem.Moved(it.oldPath, it.newPath)) }
         }
-
         _diffItems.value = items
     }
 
-    fun prepareExport(content: String, type: String) {
-        pendingExport = content to type
-    }
+    fun prepareExport(content: String, type: String) { pendingExport = content to type }
 
     fun onExportFileCreated(uri: android.net.Uri) {
-        pendingExport?.let { (content, type) ->
+        pendingExport?.let { (content, _) ->
             viewModelScope.launch {
                 try {
-                    val outputStream = getApplication<Application>().contentResolver.openOutputStream(uri)
-                    outputStream?.use { it.write(content.toByteArray()) }
+                    getApplication<Application>().contentResolver.openOutputStream(uri)?.use { it.write(content.toByteArray()) }
                     _exportResult.value = Result.success(Unit)
                 } catch (e: Exception) {
                     _exportResult.value = Result.failure(e)
