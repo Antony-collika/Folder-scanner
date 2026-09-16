@@ -21,14 +21,11 @@ class SafTreeReader(private val context: Context) {
                 .asSequence().filter { passesFilter(it, options) }.sortedWith(comparator(options.sortOrder)).toList()
             for (child in children) {
                 val id = getDocumentId(child) ?: ""; val old = oldChildren[id]
-                val type = if (child.isDirectory) EntryType.FOLDER else EntryType.FILE
+                val type = if (child.isDirectory) EntryType.FOLDER else EntryType.FILE; val childPath = buildPath(entry.path, child.name ?: "")
                 val unchanged = old != null && old.modified == child.lastModified && old.type == type
-                val childPath = buildPath(entry.path, child.name ?: "")
-                val childEntry = if (unchanged) rebase(old, childPath, child.name ?: "") else Entry(child.name ?: "", type, childPath, id, child.lastModified, if (child.isFile) child.length else null, child.type, if (child.isDirectory) mutableListOf() else null)
+                val childEntry = if (unchanged) rebase(old!!, childPath, child.name ?: "") else Entry(child.name ?: "", type, childPath, id, child.lastModified, if (child.isFile) child.length else null, child.type, if (child.isDirectory) mutableListOf() else null)
                 entry.children?.add(childEntry)
-                if (child.isDirectory && !unchanged && (options.maxDepth == null || getDepth(childPath) < options.maxDepth)) {
-                    stack.add(child to childEntry); oldStack.add(old?.children.orEmpty().associateBy { it.documentId })
-                }
+                if (child.isDirectory && !unchanged && (options.maxDepth == null || getDepth(childPath) < options.maxDepth)) { stack.add(child to childEntry); oldStack.add(old?.children.orEmpty().associateBy { it.documentId }) }
                 counter++; if (counter % 100 == 0) onProgress(ScanProgress(counter, childEntry.path))
             }
         }
@@ -37,20 +34,10 @@ class SafTreeReader(private val context: Context) {
     private fun rebase(entry: Entry, path: String, name: String): Entry = entry.copy(name = name, path = path, children = entry.children?.map { rebase(it, buildPath(path, it.name), it.name) }?.toMutableList())
     private fun comparator(sortOrder: String): Comparator<SafDocument> = Comparator { a, b ->
         if (a.isDirectory != b.isDirectory) return@Comparator if (a.isDirectory) -1 else 1
-        when (sortOrder) {
-            "modified" -> compareValues(b.lastModified, a.lastModified).takeIf { it != 0 } ?: compareValues(a.name.orEmpty().lowercase(), b.name.orEmpty().lowercase())
-            "size" -> compareValues(b.length, a.length).takeIf { it != 0 } ?: compareValues(a.name.orEmpty().lowercase(), b.name.orEmpty().lowercase())
-            else -> compareValues(a.name.orEmpty().lowercase(), b.name.orEmpty().lowercase())
-        }
+        when (sortOrder) { "modified" -> compareValues(b.lastModified, a.lastModified).takeIf { it != 0 } ?: compareValues(a.name.orEmpty().lowercase(), b.name.orEmpty().lowercase()); "size" -> compareValues(b.length, a.length).takeIf { it != 0 } ?: compareValues(a.name.orEmpty().lowercase(), b.name.orEmpty().lowercase()); else -> compareValues(a.name.orEmpty().lowercase(), b.name.orEmpty().lowercase()) }
     }
     private fun getDocumentId(doc: SafDocument): String? = try { DocumentsContract.getDocumentId(doc.uri) } catch (_: Exception) { null }
-    private fun passesFilter(doc: SafDocument, options: ScanOptions): Boolean {
-        val name = doc.name ?: return false
-        if (options.skipHiddenFolders && doc.isDirectory && name.startsWith(".")) return false
-        if (options.skipHiddenFiles && doc.isFile && name.startsWith(".")) return false
-        if (options.skipSystemJunk && name in setOf(".thumbnails", ".cache", "cache", ".temp", ".trash", "Android/data")) return false
-        return true
-    }
+    private fun passesFilter(doc: SafDocument, options: ScanOptions): Boolean { val name = doc.name ?: return false; if (options.skipHiddenFolders && doc.isDirectory && name.startsWith(".")) return false; if (options.skipHiddenFiles && doc.isFile && name.startsWith(".")) return false; if (options.skipSystemJunk && name in setOf(".thumbnails", ".cache", "cache", ".temp", ".trash", "Android/data")) return false; return true }
     private fun buildPath(parent: String, name: String) = if (parent.isEmpty()) name else "$parent/$name"
     private fun getDepth(path: String) = if (path.isEmpty()) 0 else path.count { it == '/' } + 1
 }
