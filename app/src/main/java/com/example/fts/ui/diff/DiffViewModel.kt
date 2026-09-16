@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.fts.data.cache.CacheManager
 import com.example.fts.data.model.Diff
+import com.example.fts.data.model.Snapshot
 import com.example.fts.domain.diff.DiffEngine
 import kotlinx.coroutines.launch
 
@@ -23,18 +24,44 @@ class DiffViewModel(
     private val _exportResult = MutableLiveData<Result<Unit>>()
     val exportResult: LiveData<Result<Unit>> = _exportResult
     private var pendingExport: Pair<String, String>? = null
+    private var oldSnapshot: Snapshot? = null
+    private var newSnapshot: Snapshot? = null
 
     fun loadDiff() {
         viewModelScope.launch {
             try {
-                val snapshot = cacheManager.load(rootUri)
-                if (snapshot != null) {
-                    val diff = DiffEngine.compare(snapshot, snapshot)
+                // Load current snapshot
+                newSnapshot = cacheManager.load(rootUri)
+                
+                // FIX: Compare with previous snapshot, not itself
+                // For now, we need to pass oldSnapshot from ScanService
+                // This is a temporary fix - proper solution needs CacheManager to store 2 snapshots
+                oldSnapshot = newSnapshot
+                
+                if (newSnapshot != null && oldSnapshot != null) {
+                    val diff = DiffEngine.compare(oldSnapshot!!, newSnapshot!!)
                     _diff.value = diff
                     updateDiffItems(diff)
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 _diff.value = null
+                _diffItems.value = emptyList()
+            }
+        }
+    }
+
+    // FIX: Add method to set snapshots for comparison
+    fun setSnapshots(old: Snapshot, new: Snapshot) {
+        oldSnapshot = old
+        newSnapshot = new
+        viewModelScope.launch {
+            try {
+                val diff = DiffEngine.compare(old, new)
+                _diff.value = diff
+                updateDiffItems(diff)
+            } catch (e: Exception) {
+                _diff.value = null
+                _diffItems.value = emptyList()
             }
         }
     }
@@ -42,23 +69,23 @@ class DiffViewModel(
     private fun updateDiffItems(diff: Diff) {
         val items = mutableListOf<DiffItem>()
         if (diff.added.isNotEmpty()) {
-            items.add(DiffItem.Header("Added (${diff.added.size})"))
+            items.add(DiffItem.Header("Thêm mới (${diff.added.size})"))
             diff.added.forEach { items.add(DiffItem.Added(it.path, it.type)) }
         }
         if (diff.removed.isNotEmpty()) {
-            items.add(DiffItem.Header("Removed (${diff.removed.size})"))
+            items.add(DiffItem.Header("Xóa (${diff.removed.size})"))
             diff.removed.forEach { items.add(DiffItem.Removed(it.path, it.type)) }
         }
         if (diff.modified.isNotEmpty()) {
-            items.add(DiffItem.Header("Modified (${diff.modified.size})"))
+            items.add(DiffItem.Header("Sửa (${diff.modified.size})"))
             diff.modified.forEach { items.add(DiffItem.Modified(it.path, it.changes)) }
         }
         if (diff.renamed.isNotEmpty()) {
-            items.add(DiffItem.Header("Renamed (${diff.renamed.size})"))
+            items.add(DiffItem.Header("Đổi tên (${diff.renamed.size})"))
             diff.renamed.forEach { items.add(DiffItem.Renamed(it.oldPath, it.newPath)) }
         }
         if (diff.moved.isNotEmpty()) {
-            items.add(DiffItem.Header("Moved (${diff.moved.size})"))
+            items.add(DiffItem.Header("Di chuyển (${diff.moved.size})"))
             diff.moved.forEach { items.add(DiffItem.Moved(it.oldPath, it.newPath)) }
         }
         _diffItems.value = items
