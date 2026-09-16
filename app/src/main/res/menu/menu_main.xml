@@ -4,12 +4,14 @@
 
     <item
         android:id="@+id/action_settings"
-        android:title="Settings"
+        android:title="Cài đặt"
+        android:icon="@drawable/ic_settings"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_cache_management"
-        android:title="Cache Management"
+        android:title="Quản lý cache"
+        android:icon="@drawable/ic_storage"
         app:showAsAction="never" />
 
 </menu>

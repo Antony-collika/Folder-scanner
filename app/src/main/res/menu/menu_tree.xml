@@ -4,22 +4,26 @@
 
     <item
         android:id="@+id/action_export_md"
-        android:title="Export MD"
+        android:title="Xuất Markdown"
+        android:icon="@drawable/ic_file_download"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_export_json"
-        android:title="Export JSON"
+        android:title="Xuất JSON"
+        android:icon="@drawable/ic_file_download"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_scan_again"
-        android:title="Scan Again"
+        android:title="Quét lại"
+        android:icon="@drawable/ic_refresh"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_view_diff"
-        android:title="View Diff"
+        android:title="Xem diff"
+        android:icon="@drawable/ic_diff"
         app:showAsAction="never" />
 
 </menu>

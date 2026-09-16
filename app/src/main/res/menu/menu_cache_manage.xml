@@ -4,7 +4,8 @@
 
     <item
         android:id="@+id/action_delete_all"
-        android:title="Delete All Cache"
+        android:title="Xóa toàn bộ cache"
+        android:icon="@drawable/ic_delete"
         app:showAsAction="never" />
 
 </menu>
