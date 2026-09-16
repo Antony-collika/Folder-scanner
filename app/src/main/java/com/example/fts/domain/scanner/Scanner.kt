@@ -15,56 +15,26 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.coroutineContext
 
-class Scanner(
-    private val context: Context,
-    private val cacheManager: CacheManager
-) {
+class Scanner(private val context: Context, private val cacheManager: CacheManager) {
     private val treeReader = SafTreeReader(context)
 
-    suspend fun scan(
-        rootUri: Uri,
-        rootName: String,
-        options: ScanOptions,
-        onProgress: (ScanProgress) -> Unit
-    ): Snapshot = withContext(Dispatchers.IO) {
-        val rootEntry = treeReader.readTree(rootUri, options) { progress ->
-            coroutineContext.ensureActive()
-            onProgress(progress)
-        }
-
-        val stats = calculateStats(rootEntry)
-        Snapshot(
-            version = 1,
-            rootName = rootName,
-            rootUri = rootUri.toString(),
-            scannedAt = System.currentTimeMillis(),
-            root = rootEntry,
-            stats = stats
-        )
+    suspend fun scan(rootUri: Uri, rootName: String, options: ScanOptions, onProgress: (ScanProgress) -> Unit): Snapshot = withContext(Dispatchers.IO) {
+        val rootEntry = treeReader.readTree(rootUri, options) { progress -> coroutineContext.ensureActive(); onProgress(progress) }
+        Snapshot(1, rootName, rootUri.toString(), System.currentTimeMillis(), rootEntry, calculateStats(rootEntry))
     }
 
     private suspend fun calculateStats(entry: Entry): SnapshotStats {
-        var totalEntries = 0
-        var totalFolders = 0
-        var totalFiles = 0
-        var totalSize = 0L
-        val stack = ArrayDeque<Entry>()
-        stack.addLast(entry)
-
+        var totalEntries = 0; var totalFolders = 0; var totalFiles = 0; var totalSize = 0L
+        val stack = ArrayDeque<Entry>(); stack.add(entry)
         while (stack.isNotEmpty()) {
             coroutineContext.ensureActive()
-            val current = stack.removeLast()
-            totalEntries++
+            val current = stack.removeLast(); totalEntries++
             when (current.type) {
                 EntryType.FOLDER -> totalFolders++
-                EntryType.FILE -> {
-                    totalFiles++
-                    totalSize += current.size ?: 0L
-                }
+                EntryType.FILE -> { totalFiles++; totalSize += current.size ?: 0L }
             }
-            current.children?.forEach(stack::addLast)
+            current.children?.forEach(stack::add)
         }
-
         return SnapshotStats(totalEntries, totalFolders, totalFiles, totalSize)
     }
 
@@ -72,20 +42,13 @@ class Scanner(
         try {
             val rootDoc = SafDocument.fromTreeUri(context, rootUri) ?: return@withContext 0
             var count = 0
-            val stack = ArrayDeque<SafDocument>()
-            stack.addLast(rootDoc)
-            val maxCount = 10000
-            while (stack.isNotEmpty() && count < maxCount) {
+            val stack = ArrayDeque<SafDocument>(); stack.add(rootDoc)
+            while (stack.isNotEmpty() && count < 10000) {
                 coroutineContext.ensureActive()
-                val doc = stack.removeLast()
-                count++
-                if (doc.isDirectory) {
-                    doc.listFiles()?.forEach(stack::addLast)
-                }
+                val doc = stack.removeLast(); count++
+                if (doc.isDirectory) doc.listFiles()?.forEach(stack::add)
             }
             count
-        } catch (e: Exception) {
-            0
-        }
+        } catch (_: Exception) { 0 }
     }
 }
