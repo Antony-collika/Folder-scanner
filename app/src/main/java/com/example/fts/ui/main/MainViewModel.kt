@@ -17,7 +17,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init { loadRootFolders() }
 
     fun loadRootFolders() {
-        viewModelScope.launch { _rootFolders.value = repository.getAll() }
+        viewModelScope.launch { 
+            _rootFolders.value = repository.getAll() 
+        }
     }
 
     fun saveRootFolder(rootFolder: RootFolder) {
