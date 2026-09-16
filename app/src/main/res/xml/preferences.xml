@@ -1,81 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory
-        android:title="@string/pref_category_display"
-        android:key="display_category">
-        
-        <ListPreference
-            android:key="markdown_model"
-            android:title="@string/pref_markdown_model"
-            android:summary="%s"
-            android:entries="@array/markdown_models"
-            android:entryValues="@array/markdown_model_values"
-            android:defaultValue="D"/>
-        
-        <SwitchPreferenceCompat
-            android:key="show_metadata_in_md"
-            android:title="@string/pref_show_metadata_in_md"
-            android:summary="@string/pref_show_metadata_in_md_summary"
-            android:defaultValue="false"/>
-        
-        <SwitchPreferenceCompat
-            android:key="sort_folders_first"
-            android:title="@string/pref_sort_folders_first"
-            android:summary="@string/pref_sort_folders_first_summary"
-            android:defaultValue="true"/>
-    </PreferenceCategory>
+    <ListPreference
+        android:key="markdown_model"
+        android:title="Mô hình Markdown"
+        android:summary="Chọn mô hình hiển thị cây"
+        android:entries="@array/markdown_models"
+        android:entryValues="@array/markdown_model_values"
+        android:defaultValue="D" />
 
-    <PreferenceCategory
-        android:title="@string/pref_category_scan"
-        android:key="scan_category">
-        
-        <SwitchPreferenceCompat
-            android:key="skip_hidden_folders"
-            android:title="@string/pref_skip_hidden_folders"
-            android:summary="@string/pref_skip_hidden_folders_summary"
-            android:defaultValue="true"/>
-        
-        <SwitchPreferenceCompat
-            android:key="skip_hidden_files"
-            android:title="@string/pref_skip_hidden_files"
-            android:summary="@string/pref_skip_hidden_files_summary"
-            android:defaultValue="true"/>
-        
-        <SwitchPreferenceCompat
-            android:key="skip_system_junk"
-            android:title="@string/pref_skip_system_junk"
-            android:summary="@string/pref_skip_system_junk_summary"
-            android:defaultValue="true"/>
-        
-        <EditTextPreference
-            android:key="max_depth"
-            android:title="@string/pref_max_depth"
-            android:summary="@string/pref_max_depth_summary"
-            android:inputType="number"
-            android:defaultValue="-1"/>
-    </PreferenceCategory>
+    <SwitchPreferenceCompat
+        android:key="skip_hidden_folders"
+        android:title="Bỏ qua thư mục ẩn"
+        android:summary="Không quét các thư mục bắt đầu bằng dấu chấm"
+        android:defaultValue="true" />
 
-    <PreferenceCategory
-        android:title="@string/pref_category_notifications"
-        android:key="notifications_category">
-        
-        <SwitchPreferenceCompat
-            android:key="notification_enabled"
-            android:title="@string/pref_notification_enabled"
-            android:summary="@string/pref_notification_enabled_summary"
-            android:defaultValue="true"/>
-    </PreferenceCategory>
+    <SwitchPreferenceCompat
+        android:key="skip_hidden_files"
+        android:title="Bỏ qua file ẩn"
+        android:summary="Không quét các file bắt đầu bằng dấu chấm"
+        android:defaultValue="true" />
 
-    <PreferenceCategory
-        android:title="@string/pref_category_cache"
-        android:key="cache_category">
-        
-        <Preference
-            android:key="cache_management"
-            android:title="@string/pref_cache_management"
-            android:summary="@string/pref_cache_management_summary"/>
-    </PreferenceCategory>
+    <SwitchPreferenceCompat
+        android:key="skip_system_junk"
+        android:title="Bỏ qua rác hệ thống"
+        android:summary="Không quét .thumbnails, .cache, cache, .temp, .trash"
+        android:defaultValue="true" />
+
+    <EditTextPreference
+        android:key="max_depth"
+        android:title="Độ sâu tối đa"
+        android:summary="Để trống = không giới hạn"
+        android:inputType="number"
+        android:defaultValue="" />
+
+    <ListPreference
+        android:key="sort_order"
+        android:title="Sắp xếp mặc định"
+        android:summary="Thứ tự sắp xếp các mục"
+        android:entries="@array/sort_orders"
+        android:entryValues="@array/sort_order_values"
+        android:defaultValue="name" />
+
+    <SwitchPreferenceCompat
+        android:key="show_metadata_in_md"
+        android:title="Hiện metadata trong Markdown"
+        android:summary="Hiện kích thước, ngày sửa trong file MD"
+        android:defaultValue="false" />
+
+    <SwitchPreferenceCompat
+        android:key="notification_on_scan_complete"
+        android:title="Thông báo khi quét xong"
+        android:summary="Hiện thông báo khi quét hoàn tất"
+        android:defaultValue="true" />
 
 </PreferenceScreen>
