@@ -10,13 +10,13 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.example.fts.R
 import com.example.fts.data.cache.CacheManager
-import com.example.fts.data.model.Diff
 import com.example.fts.data.model.ScanOptions
 import com.example.fts.data.repository.RootFolderRepository
 import com.example.fts.domain.diff.DiffEngine
 import com.example.fts.domain.scanner.Scanner
 import com.example.fts.util.Constants
 import com.example.fts.util.Logging
+import com.example.fts.ui.diff.DiffActivity
 import com.example.fts.ui.tree.TreeActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,9 +41,10 @@ class ScanService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val rootUri = intent?.getStringExtra(Constants.SERVICE_EXTRA_URI)
-        val rootName = intent?.getStringExtra(Constants.SERVICE_EXTRA_ROOT_NAME)
-        val isIncremental = intent?.getBooleanExtra(Constants.SERVICE_EXTRA_IS_INCREMENTAL, false) ?: false
+        val rootUri = intent?.getStringExtra(Constants.EXTRA_URI)
+        val rootName = intent?.getStringExtra(Constants.EXTRA_DISPLAY_NAME)
+        val isIncremental = intent?.getBooleanExtra(Constants.EXTRA_INCREMENTAL, false) ?: false
+        
         if (rootUri == null || rootName == null) {
             stopSelf()
             return START_NOT_STICKY
@@ -55,9 +56,11 @@ class ScanService : Service() {
                 val options = ScanOptions()
                 val uri = Uri.parse(rootUri)
                 val previousSnapshot = if (isIncremental) cacheManager.load(rootUri) else null
+                
                 val snapshot = scanner.scan(uri, rootName, options) { progress ->
                     if (isActive && !isCancelled) updateNotification("Scanning... ${progress.count}")
                 }
+                
                 cacheManager.save(rootUri, snapshot)
 
                 rootFolderRepository.getByUri(rootUri)?.let { rootFolderRepository.update(it.copy(
@@ -65,11 +68,18 @@ class ScanService : Service() {
                     entryCount = snapshot.stats.totalEntries
                 )) }
 
+                // FIX: Calculate diff if incremental
                 val diff = if (isIncremental && previousSnapshot != null) {
                     DiffEngine.compare(previousSnapshot, snapshot)
                 } else null
-                val changeCount = diff?.let { it.added.size + it.removed.size + it.modified.size + it.renamed.size + it.moved.size }
-                showCompleteNotification(rootName, snapshot.stats.totalEntries, changeCount)
+                
+                val changeCount = diff?.let { 
+                    it.added.size + it.removed.size + it.modified.size + it.renamed.size + it.moved.size 
+                }
+                
+                // FIX: Pass diff to notification
+                showCompleteNotification(rootName, snapshot.stats.totalEntries, changeCount, rootUri, displayName, diff)
+                
             } catch (e: Exception) {
                 Logging.e("Scan error: ${e.message}", e)
                 showErrorNotification(rootName, e.message ?: "Unknown error")
@@ -109,18 +119,32 @@ class ScanService : Service() {
         notificationManager.notify(Constants.NOTIFICATION_ID_SCAN, createNotification(message))
     }
 
-    private fun showCompleteNotification(rootName: String, totalEntries: Int, changeCount: Int?) {
-        val message = if (changeCount != null) {
-            "Scan complete: $rootName: $totalEntries entries, $changeCount changes"
+    // FIX: Add diff parameter
+    private fun showCompleteNotification(rootName: String, totalEntries: Int, changeCount: Int?, rootUri: String, displayName: String, diff: com.example.fts.data.model.Diff?) {
+        val message = if (changeCount != null && changeCount > 0) {
+            "Quét xong: $rootName: $totalEntries mục, $changeCount thay đổi"
         } else {
-            "Scan complete: $rootName: $totalEntries entries"
+            "Quét xong: $rootName: $totalEntries mục"
         }
-        val intent = Intent(this, TreeActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        
+        val intent = if (changeCount != null && changeCount > 0 && diff != null) {
+            // FIX: Open DiffActivity if there are changes
+            Intent(this, DiffActivity::class.java).apply {
+                putExtra(Constants.EXTRA_URI, rootUri)
+                putExtra(Constants.EXTRA_DISPLAY_NAME, displayName)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+        } else {
+            Intent(this, TreeActivity::class.java).apply {
+                putExtra(Constants.EXTRA_URI, rootUri)
+                putExtra(Constants.EXTRA_DISPLAY_NAME, displayName)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
         }
+        
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID)
-            .setContentTitle("Scan Complete")
+            .setContentTitle("Quét hoàn tất")
             .setContentText(message)
             .setSmallIcon(R.drawable.ic_folder)
             .setContentIntent(pendingIntent)
@@ -132,8 +156,8 @@ class ScanService : Service() {
 
     private fun showErrorNotification(rootName: String, error: String) {
         val notification = NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID)
-            .setContentTitle("Scan Error")
-            .setContentText("Failed to scan $rootName: $error")
+            .setContentTitle("Lỗi quét")
+            .setContentText("Không thể quét $rootName: $error")
             .setSmallIcon(R.drawable.ic_folder)
             .setAutoCancel(true)
             .build()
