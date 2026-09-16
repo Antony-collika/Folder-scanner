@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.fts.data.cache.CacheManager
+import com.example.fts.data.model.EntryType
 import com.example.fts.data.model.Snapshot
 import com.example.fts.data.repository.SettingsRepository
 import com.example.fts.domain.flatten.FlatNode
@@ -31,6 +32,7 @@ class TreeViewModel(
     private val _exportResult = MutableLiveData<Result<Unit>>()
     val exportResult: LiveData<Result<Unit>> = _exportResult
     private var pendingExport: Pair<String, String>? = null
+    private var query = ""
 
     fun loadData() {
         viewModelScope.launch {
@@ -59,7 +61,30 @@ class TreeViewModel(
     }
 
     private fun updateTree(snapshot: Snapshot) {
-        _treeItems.value = TreeFlattener.flatten(snapshot.root, expandedFolders)
+        val allExpanded = if (query.isBlank()) expandedFolders else collectFolderIds(snapshot.root)
+        val flattened = TreeFlattener.flatten(snapshot.root, allExpanded)
+        _treeItems.value = if (query.isBlank()) flattened else flattened.filter {
+            it.entry.name.contains(query, ignoreCase = true) || it.entry.path.contains(query, ignoreCase = true)
+        }
+    }
+
+    private fun collectFolderIds(root: com.example.fts.data.model.Entry): Set<String> {
+        val result = mutableSetOf<String>()
+        val stack = ArrayDeque<com.example.fts.data.model.Entry>()
+        stack.addLast(root)
+        while (stack.isNotEmpty()) {
+            val entry = stack.removeLast()
+            if (entry.type == EntryType.FOLDER) {
+                result.add(entry.documentId)
+                entry.children?.forEach(stack::addLast)
+            }
+        }
+        return result
+    }
+
+    fun search(value: String) {
+        query = value.trim()
+        _snapshot.value?.let(::updateTree)
     }
 
     fun toggleFolder(documentId: String) {
@@ -68,9 +93,7 @@ class TreeViewModel(
     }
 
     fun rescan() { viewModelScope.launch { scanFresh() } }
-
     fun requestShowDiff() { _showDiff.value = true }
-
     fun prepareExport(content: String, type: String) { pendingExport = content to type }
 
     fun onExportFileCreated(uri: android.net.Uri) {
