@@ -25,13 +25,13 @@ object MarkdownExporter {
     }
     
     private fun appendHeader(sb: StringBuilder, snapshot: Snapshot, showMetadata: Boolean) {
-        sb.appendLine("# Cay thu muc: ${MarkdownEscape.escape(snapshot.rootName)}")
+        sb.appendLine("# Cây thư mục: ${MarkdownEscape.escape(snapshot.rootName)}")
         sb.appendLine()
-        sb.appendLine("- **Quet luc:** ${DateFormatter.format(snapshot.scannedAt)}")
-        sb.appendLine("- **Tong so muc:** ${FileSizeFormatter.formatCount(snapshot.stats.totalEntries)}")
-        sb.appendLine("- **So folder:** ${FileSizeFormatter.formatCount(snapshot.stats.totalFolders)}")
-        sb.appendLine("- **So file:** ${FileSizeFormatter.formatCount(snapshot.stats.totalFiles)}")
-        sb.appendLine("- **Tong dung luong:** ${FileSizeFormatter.formatSize(snapshot.stats.totalSize)}")
+        sb.appendLine("- **Quét lúc:** ${DateFormatter.formatDateTime(snapshot.scannedAt)}")
+        sb.appendLine("- **Tổng số mục:** ${FileSizeFormatter.formatCount(snapshot.stats.totalEntries)}")
+        sb.appendLine("- **Số folder:** ${FileSizeFormatter.formatCount(snapshot.stats.totalFolders)}")
+        sb.appendLine("- **Số file:** ${FileSizeFormatter.formatCount(snapshot.stats.totalFiles)}")
+        sb.appendLine("- **Tổng dung lượng:** ${FileSizeFormatter.formatSize(snapshot.stats.totalSize)}")
         sb.appendLine()
         sb.appendLine("---")
         sb.appendLine()
@@ -85,12 +85,13 @@ object MarkdownExporter {
         
         children.forEachIndexed { index, child ->
             val isLast = index == children.lastIndex
-            val connector = if (isLast) "|-- " else "|-- "
+            // FIX: Use proper ASCII tree connectors
+            val connector = if (isLast) "└── " else "├── "
             val suffix = if (child.type == EntryType.FOLDER) "/" else ""
             sb.appendLine("${prefix}${connector}${MarkdownEscape.escape(child.name)}${suffix}")
             
             if (child.type == EntryType.FOLDER) {
-                val newPrefix = prefix + if (isLast) "    " else "|   "
+                val newPrefix = prefix + if (isLast) "    " else "│   "
                 appendAsciiTree(sb, child, newPrefix)
             }
         }
