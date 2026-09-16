@@ -77,14 +77,6 @@ class DiffViewModel(
 
     fun prepareExport(content: String, type: String) { pendingExport = content to type }
 
-    fun prepareMarkdownExport() {
-        _diff.value?.let { prepareExport(DiffExporter.exportMarkdown(it), "md") }
-    }
-
-    fun prepareJsonExport() {
-        _diff.value?.let { prepareExport(DiffExporter.exportJson(it), "json") }
-    }
-
     fun onExportFileCreated(uri: android.net.Uri) {
         pendingExport?.let { (content, _) ->
             viewModelScope.launch {
@@ -107,6 +99,6 @@ class DiffViewModel(
         data class Removed(val path: String, val type: EntryType) : DiffItem()
         data class Modified(val path: String, val changes: Map<String, Pair<Any?, Any?>>) : DiffItem()
         data class Renamed(val oldPath: String, val newPath: String) : DiffItem()
-        data class Moved(val oldPath: String, val newPath: String) : DiffItem()
+        data class Moved(val oldPath: String, val newPath: String)
     }
 }
