@@ -17,6 +17,7 @@ import com.example.fts.service.ScanService
 import com.example.fts.ui.cache.CacheManageActivity
 import com.example.fts.ui.settings.SettingsActivity
 import com.example.fts.ui.tree.TreeActivity
+import com.example.fts.util.Constants
 import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
@@ -75,7 +76,7 @@ class MainActivity : AppCompatActivity() {
         )
 
         if (viewModel.rootFolders.value?.any { it.uri == rootFolder.uri } == true) {
-            Toast.makeText(this, "Folder already added", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Thư mục đã có trong danh sách", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -91,9 +92,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun startScanService(rootUri: String, displayName: String, isIncremental: Boolean) {
         val intent = Intent(this, ScanService::class.java).apply {
-            putExtra(com.example.fts.util.Constants.EXTRA_URI, rootUri)
-            putExtra(com.example.fts.util.Constants.EXTRA_DISPLAY_NAME, displayName)
-            putExtra(com.example.fts.util.Constants.EXTRA_INCREMENTAL, isIncremental)
+            putExtra(Constants.EXTRA_URI, rootUri)
+            putExtra(Constants.EXTRA_DISPLAY_NAME, displayName)
+            putExtra(Constants.EXTRA_INCREMENTAL, isIncremental)
         }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             startForegroundService(intent)
