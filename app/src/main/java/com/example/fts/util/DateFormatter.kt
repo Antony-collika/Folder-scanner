@@ -13,6 +13,10 @@ object DateFormatter {
         timeZone = TimeZone.getDefault()
     }
     
+    fun format(timestamp: Long): String {
+        return dateTimeFormat.format(Date(timestamp))
+    }
+    
     fun formatDateTime(timestamp: Long): String {
         return dateTimeFormat.format(Date(timestamp))
     }
@@ -21,6 +25,7 @@ object DateFormatter {
         return dateFormat.format(Date(timestamp))
     }
     
+    // FIX: Add ISO format for JSON export
     fun formatIso(timestamp: Long): String {
         return isoFormat.format(Date(timestamp))
     }
