@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.fts.data.cache.CacheManager
 import com.example.fts.data.model.Diff
+import com.example.fts.data.model.EntryType
 import com.example.fts.data.model.Snapshot
 import com.example.fts.domain.diff.DiffEngine
 import kotlinx.coroutines.launch
@@ -24,49 +25,31 @@ class DiffViewModel(
     private val _exportResult = MutableLiveData<Result<Unit>>()
     val exportResult: LiveData<Result<Unit>> = _exportResult
     private var pendingExport: Pair<String, String>? = null
-    private var oldSnapshot: Snapshot? = null
-    private var newSnapshot: Snapshot? = null
 
     fun loadDiff() {
         viewModelScope.launch {
             try {
-                // Load current snapshot
-                newSnapshot = cacheManager.load(rootUri)
-                
-                // FIX: Compare with previous snapshot, not itself
-                // For now, we need to pass oldSnapshot from ScanService
-                // This is a temporary fix - proper solution needs CacheManager to store 2 snapshots
-                oldSnapshot = newSnapshot
-                
-                if (newSnapshot != null && oldSnapshot != null) {
-                    val diff = DiffEngine.compare(oldSnapshot!!, newSnapshot!!)
-                    _diff.value = diff
-                    updateDiffItems(diff)
+                val oldSnapshot = cacheManager.loadPrevious(rootUri)
+                val newSnapshot = cacheManager.load(rootUri)
+                if (oldSnapshot == null || newSnapshot == null) {
+                    _diff.value = null
+                    _diffItems.value = emptyList()
+                    return@launch
                 }
-            } catch (e: Exception) {
+                publish(DiffEngine.compare(oldSnapshot, newSnapshot))
+            } catch (_: Exception) {
                 _diff.value = null
                 _diffItems.value = emptyList()
             }
         }
     }
 
-    // FIX: Add method to set snapshots for comparison
     fun setSnapshots(old: Snapshot, new: Snapshot) {
-        oldSnapshot = old
-        newSnapshot = new
-        viewModelScope.launch {
-            try {
-                val diff = DiffEngine.compare(old, new)
-                _diff.value = diff
-                updateDiffItems(diff)
-            } catch (e: Exception) {
-                _diff.value = null
-                _diffItems.value = emptyList()
-            }
-        }
+        viewModelScope.launch { publish(DiffEngine.compare(old, new)) }
     }
 
-    private fun updateDiffItems(diff: Diff) {
+    private fun publish(diff: Diff) {
+        _diff.value = diff
         val items = mutableListOf<DiffItem>()
         if (diff.added.isNotEmpty()) {
             items.add(DiffItem.Header("Thêm mới (${diff.added.size})"))
@@ -97,7 +80,9 @@ class DiffViewModel(
         pendingExport?.let { (content, _) ->
             viewModelScope.launch {
                 try {
-                    getApplication<Application>().contentResolver.openOutputStream(uri)?.use { it.write(content.toByteArray()) }
+                    getApplication<Application>().contentResolver.openOutputStream(uri)?.use {
+                        it.write(content.toByteArray(Charsets.UTF_8))
+                    } ?: error("Cannot open output stream")
                     _exportResult.value = Result.success(Unit)
                 } catch (e: Exception) {
                     _exportResult.value = Result.failure(e)
@@ -109,8 +94,8 @@ class DiffViewModel(
 
     sealed class DiffItem {
         data class Header(val text: String) : DiffItem()
-        data class Added(val path: String, val type: com.example.fts.data.model.EntryType) : DiffItem()
-        data class Removed(val path: String, val type: com.example.fts.data.model.EntryType) : DiffItem()
+        data class Added(val path: String, val type: EntryType) : DiffItem()
+        data class Removed(val path: String, val type: EntryType) : DiffItem()
         data class Modified(val path: String, val changes: Map<String, Pair<Any?, Any?>>) : DiffItem()
         data class Renamed(val oldPath: String, val newPath: String) : DiffItem()
         data class Moved(val oldPath: String, val newPath: String) : DiffItem()

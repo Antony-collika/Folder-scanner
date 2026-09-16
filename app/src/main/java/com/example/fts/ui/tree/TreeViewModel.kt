@@ -6,11 +6,12 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.fts.data.cache.CacheManager
+import com.example.fts.data.model.EntryType
 import com.example.fts.data.model.Snapshot
+import com.example.fts.data.repository.SettingsRepository
 import com.example.fts.domain.flatten.FlatNode
 import com.example.fts.domain.flatten.TreeFlattener
 import com.example.fts.domain.scanner.Scanner
-import com.example.fts.data.model.ScanOptions
 import kotlinx.coroutines.launch
 
 class TreeViewModel(
@@ -20,6 +21,7 @@ class TreeViewModel(
 ) : AndroidViewModel(application) {
     private val cacheManager = CacheManager(application)
     private val scanner = Scanner(application, cacheManager)
+    private val settingsRepository = SettingsRepository(application)
     private val expandedFolders = mutableSetOf<String>()
     private val _treeItems = MutableLiveData<List<FlatNode>>()
     val treeItems: LiveData<List<FlatNode>> = _treeItems
@@ -30,6 +32,7 @@ class TreeViewModel(
     private val _exportResult = MutableLiveData<Result<Unit>>()
     val exportResult: LiveData<Result<Unit>> = _exportResult
     private var pendingExport: Pair<String, String>? = null
+    private var query = ""
 
     fun loadData() {
         viewModelScope.launch {
@@ -37,12 +40,9 @@ class TreeViewModel(
                 cacheManager.load(rootUri)?.let {
                     _snapshot.value = it
                     updateTree(it)
-                } ?: run { 
-                    // FIX: If no cache, scan fresh
-                    scanFresh()
-                }
-            } catch (e: Exception) { 
-                _snapshot.value = null 
+                } ?: scanFresh()
+            } catch (_: Exception) {
+                _snapshot.value = null
             }
         }
     }
@@ -50,49 +50,68 @@ class TreeViewModel(
     private suspend fun scanFresh() {
         try {
             val uri = android.net.Uri.parse(rootUri)
-            val snapshot = scanner.scan(uri, displayName, ScanOptions())
+            val snapshot = scanner.scan(uri, displayName, settingsRepository.scanOptions()) { }
+            cacheManager.load(rootUri)?.let { cacheManager.savePrevious(rootUri, it) }
             cacheManager.save(rootUri, snapshot)
             _snapshot.value = snapshot
             updateTree(snapshot)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             _snapshot.value = null
         }
     }
 
     private fun updateTree(snapshot: Snapshot) {
-        _treeItems.value = TreeFlattener.flatten(snapshot.root, expandedFolders)
+        val allExpanded = if (query.isBlank()) expandedFolders else collectFolderIds(snapshot.root)
+        val flattened = TreeFlattener.flatten(snapshot.root, allExpanded)
+        _treeItems.value = if (query.isBlank()) flattened else flattened.filter {
+            it.entry.name.contains(query, ignoreCase = true) || it.entry.path.contains(query, ignoreCase = true)
+        }
+    }
+
+    private fun collectFolderIds(root: com.example.fts.data.model.Entry): Set<String> {
+        val result = mutableSetOf<String>()
+        val stack = ArrayDeque<com.example.fts.data.model.Entry>()
+        stack.addLast(root)
+        while (stack.isNotEmpty()) {
+            val entry = stack.removeLast()
+            if (entry.type == EntryType.FOLDER) {
+                result.add(entry.documentId)
+                entry.children?.forEach(stack::addLast)
+            }
+        }
+        return result
+    }
+
+    fun search(value: String) {
+        query = value.trim()
+        _snapshot.value?.let(::updateTree)
     }
 
     fun toggleFolder(documentId: String) {
         if (!expandedFolders.add(documentId)) expandedFolders.remove(documentId)
-        _snapshot.value?.let { updateTree(it) }
+        _snapshot.value?.let(::updateTree)
     }
 
-    fun rescan() {
-        viewModelScope.launch {
-            scanFresh()
-        }
-    }
-    
-    fun requestShowDiff() { 
-        _showDiff.value = true 
-    }
-    
-    fun prepareExport(content: String, type: String) { 
-        pendingExport = content to type 
-    }
+    fun rescan() { viewModelScope.launch { scanFresh() } }
+    fun requestShowDiff() { _showDiff.value = true }
+    fun prepareExport(content: String, type: String) { pendingExport = content to type }
 
     fun onExportFileCreated(uri: android.net.Uri) {
         pendingExport?.let { (content, _) ->
             viewModelScope.launch {
                 try {
-                    getApplication<Application>().contentResolver.openOutputStream(uri)?.use { it.write(content.toByteArray()) }
+                    getApplication<Application>().contentResolver.openOutputStream(uri)?.use {
+                        it.write(content.toByteArray(Charsets.UTF_8))
+                    } ?: error("Cannot open output stream")
                     _exportResult.value = Result.success(Unit)
-                } catch (e: Exception) { 
-                    _exportResult.value = Result.failure(e) 
+                } catch (e: Exception) {
+                    _exportResult.value = Result.failure(e)
                 }
             }
         }
         pendingExport = null
     }
+
+    fun markdownModel() = settingsRepository.markdownModel()
+    fun showMetadataInMarkdown() = settingsRepository.showMetadataInMarkdown()
 }

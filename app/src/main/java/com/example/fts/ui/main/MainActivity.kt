@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.fts.R
 import com.example.fts.data.model.RootFolder
 import com.example.fts.data.repository.RootFolderRepository
+import com.example.fts.data.saf.SafPermission
 import com.example.fts.service.ScanService
 import com.example.fts.ui.cache.CacheManageActivity
 import com.example.fts.ui.settings.SettingsActivity
@@ -51,7 +52,7 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             },
             onScanClick = { rootFolder ->
-                startScanService(rootFolder.uri, rootFolder.displayName, false)
+                startScanService(rootFolder.uri, rootFolder.displayName, true)
             }
         )
 
@@ -68,6 +69,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onFolderSelected(uri: Uri) {
+        val persisted = SafPermission.takePersistableUriPermission(this, uri)
+        if (!persisted) {
+            Toast.makeText(
+                this,
+                "Không thể lưu quyền truy cập. Thư mục chỉ dùng được trong phiên hiện tại.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+
         val displayName = getDisplayName(uri)
         val rootFolder = RootFolder(
             uri = uri.toString(),
@@ -77,6 +87,11 @@ class MainActivity : AppCompatActivity() {
 
         if (viewModel.rootFolders.value?.any { it.uri == rootFolder.uri } == true) {
             Toast.makeText(this, "Thư mục đã có trong danh sách", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (viewModel.rootFolders.value?.size ?: 0 >= Constants.MAX_FOLDERS) {
+            Toast.makeText(this, "Chỉ được tối đa ${Constants.MAX_FOLDERS} thư mục", Toast.LENGTH_SHORT).show()
             return
         }
 

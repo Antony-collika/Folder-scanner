@@ -31,10 +31,20 @@ class SafTreeReader(private val context: Context) {
         val stack = ArrayDeque<Pair<SafDocument, Entry>>()
         stack.addLast(rootDoc to rootEntry)
         var counter = 0
+
         while (stack.isNotEmpty()) {
             val (doc, entry) = stack.removeLast()
-            for (child in doc.listFiles()) {
-                if (!passesFilter(child, options)) continue
+            val children = try {
+                doc.listFiles()
+            } catch (_: Exception) {
+                continue
+            }
+                .asSequence()
+                .filter { passesFilter(it, options) }
+                .sortedWith(comparator(options.sortOrder))
+                .toList()
+
+            for (child in children) {
                 val childEntry = Entry(
                     name = child.name ?: "",
                     type = if (child.isDirectory) EntryType.FOLDER else EntryType.FILE,
@@ -55,6 +65,20 @@ class SafTreeReader(private val context: Context) {
         }
         return rootEntry
     }
+
+    private fun comparator(sortOrder: String): Comparator<SafDocument> =
+        Comparator { a, b ->
+            val aDir = a.isDirectory
+            val bDir = b.isDirectory
+            if (aDir != bDir) return@Comparator if (aDir) -1 else 1
+            when (sortOrder) {
+                "modified" -> compareValues(b.lastModified, a.lastModified).takeIf { it != 0 }
+                    ?: compareValues(a.name.orEmpty().lowercase(), b.name.orEmpty().lowercase())
+                "size" -> compareValues(b.length, a.length).takeIf { it != 0 }
+                    ?: compareValues(a.name.orEmpty().lowercase(), b.name.orEmpty().lowercase())
+                else -> compareValues(a.name.orEmpty().lowercase(), b.name.orEmpty().lowercase())
+            }
+        }
 
     private fun getDocumentId(doc: SafDocument): String? = DocumentsContract.getDocumentId(doc.uri)
 

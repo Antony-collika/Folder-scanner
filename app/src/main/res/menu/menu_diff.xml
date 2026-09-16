@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-
     <item
         android:id="@+id/action_export_diff"
-        android:title="Xuất diff"
+        android:title="Xuất diff Markdown"
         android:icon="@drawable/ic_file_download"
         app:showAsAction="never" />
-
+    <item
+        android:id="@+id/action_export_diff_json"
+        android:title="Xuất diff JSON"
+        app:showAsAction="never" />
 </menu>

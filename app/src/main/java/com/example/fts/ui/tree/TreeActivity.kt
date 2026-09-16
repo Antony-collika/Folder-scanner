@@ -1,9 +1,14 @@
 package com.example.fts.ui.tree
 
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,11 +16,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.fts.R
-import com.example.fts.data.model.MarkdownModel
 import com.example.fts.domain.export.JsonExporter
 import com.example.fts.domain.export.MarkdownExporter
 import com.example.fts.ui.diff.DiffActivity
-import com.example.fts.util.Constants
 import com.example.fts.util.DateFormatter
 import com.example.fts.util.FileSizeFormatter
 
@@ -28,7 +31,7 @@ class TreeActivity : AppCompatActivity() {
     private lateinit var headerStats: TextView
 
     private val createDocumentLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument()) { uri ->
-        uri?.let { viewModel.onExportFileCreated(it) }
+        uri?.let(viewModel::onExportFileCreated)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,6 +41,7 @@ class TreeActivity : AppCompatActivity() {
         headerRootName = findViewById(R.id.rootName)
         headerScannedAt = findViewById(R.id.scannedAt)
         headerStats = findViewById(R.id.stats)
+        val searchInput = findViewById<EditText>(R.id.searchInput)
         setSupportActionBar(findViewById(R.id.toolbar))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
@@ -52,7 +56,8 @@ class TreeActivity : AppCompatActivity() {
         viewModel = TreeViewModel(rootUri, displayName, application)
         adapter = TreeAdapter(
             onFolderClick = { documentId -> viewModel.toggleFolder(documentId) },
-            onFileClick = { entry -> showFileDetail(entry) }
+            onFileClick = { entry -> showFileDetail(entry) },
+            onLongClick = { entry -> copyPath(entry.path) }
         )
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
@@ -68,6 +73,11 @@ class TreeActivity : AppCompatActivity() {
             result.onSuccess { Toast.makeText(this, "Đã xuất thành công", Toast.LENGTH_SHORT).show() }
                 .onFailure { e -> Toast.makeText(this, "Xuất thất bại: ${e.message}", Toast.LENGTH_SHORT).show() }
         }
+        searchInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { viewModel.search(s?.toString().orEmpty()) }
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
         viewModel.loadData()
     }
 
@@ -75,21 +85,22 @@ class TreeActivity : AppCompatActivity() {
         snapshot?.let {
             supportActionBar?.title = it.rootName
             headerRootName.text = it.rootName
-            headerScannedAt.text = "Quét lúc: " + DateFormatter.formatDateTime(it.scannedAt)
+            headerScannedAt.text = "Quét lúc: ${DateFormatter.formatDateTime(it.scannedAt)}"
             headerStats.text = "${it.stats.totalEntries} mục | ${it.stats.totalFolders} folder | ${it.stats.totalFiles} file | ${FileSizeFormatter.format(it.stats.totalSize)}"
         }
     }
 
     private fun showFileDetail(entry: com.example.fts.data.model.Entry) {
-        val sizeText = entry.size?.let { FileSizeFormatter.format(it) } ?: "N/A"
-        val mimeText = entry.mime ?: "N/A"
-        val detail = "Tên: ${entry.name}
-Loại: ${entry.type}
-Đường dẫn: ${entry.path}
-Sửa: ${DateFormatter.formatDateTime(entry.modified)}
-Kích thước: $sizeText
-MIME: $mimeText"
+        val sizeText = entry.size?.let(FileSizeFormatter::format) ?: "N/A"
+        val detail = "Tên: ${entry.name}\nLoại: ${entry.type}\nĐường dẫn: ${entry.path}\nSửa: ${DateFormatter.formatDateTime(entry.modified)}\nKích thước: $sizeText\nMIME: ${entry.mime ?: "N/A"}"
         Toast.makeText(this, detail, Toast.LENGTH_LONG).show()
+    }
+
+    private fun copyPath(path: String) {
+        (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(
+            android.content.ClipData.newPlainText("Path", path)
+        )
+        Toast.makeText(this, "Đã copy đường dẫn", Toast.LENGTH_SHORT).show()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -100,15 +111,18 @@ MIME: $mimeText"
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         android.R.id.home -> { finish(); true }
         R.id.action_export_md -> {
-            val markdown = viewModel.snapshot.value?.let { MarkdownExporter.export(it, MarkdownModel.D) } ?: ""
-            viewModel.prepareExport(markdown, "md")
-            createDocumentLauncher.launch("tree_${viewModel.displayName}_${System.currentTimeMillis()}.md")
+            viewModel.snapshot.value?.let {
+                val markdown = MarkdownExporter.export(it, viewModel.markdownModel(), viewModel.showMetadataInMarkdown())
+                viewModel.prepareExport(markdown, "md")
+                createDocumentLauncher.launch("tree_${viewModel.displayName}_${System.currentTimeMillis()}.md")
+            }
             true
         }
         R.id.action_export_json -> {
-            val json = viewModel.snapshot.value?.let { JsonExporter.export(it) } ?: ""
-            viewModel.prepareExport(json, "json")
-            createDocumentLauncher.launch("tree_${viewModel.displayName}_${System.currentTimeMillis()}.json")
+            viewModel.snapshot.value?.let {
+                viewModel.prepareExport(JsonExporter.export(it), "json")
+                createDocumentLauncher.launch("tree_${viewModel.displayName}_${System.currentTimeMillis()}.json")
+            }
             true
         }
         R.id.action_scan_again -> { viewModel.rescan(); true }
