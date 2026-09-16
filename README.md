@@ -17,4 +17,4 @@ Build workflow: `.github/workflows/build_apk.yml`
 
 Status: ![Build](https://github.com/Antony-collika/Folder-scanner/actions/workflows/build_apk.yml/badge.svg)
 
-<!-- Fixed dependency -->
+<!-- Removed material-icons-extended -->
