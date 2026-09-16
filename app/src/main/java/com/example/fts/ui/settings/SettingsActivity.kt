@@ -13,6 +13,7 @@ class SettingsActivity : AppCompatActivity() {
 
         setSupportActionBar(findViewById(R.id.toolbar))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = "Cài đặt"
 
         supportFragmentManager
             .beginTransaction()
