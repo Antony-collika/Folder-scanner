@@ -8,12 +8,11 @@ import android.os.Build
 object SafPermission {
     fun takePersistableUriPermission(context: Context, uri: Uri): Boolean {
         return try {
-            val contentResolver = context.contentResolver
-            val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                contentResolver.takePersistableUriPermission(uri, flags)
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
             }
             true
         } catch (e: SecurityException) {
@@ -26,7 +25,7 @@ object SafPermission {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 context.contentResolver.releasePersistableUriPermission(
                     uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
             }
             true
@@ -37,7 +36,9 @@ object SafPermission {
 
     fun hasPersistableUriPermission(context: Context, uri: Uri): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            context.contentResolver.persistedUriPermissions.any { it.uri == uri }
+            context.contentResolver.persistedUriPermissions.any {
+                it.uri == uri && (it.isReadPermission || it.isWritePermission)
+            }
         } else {
             true
         }
