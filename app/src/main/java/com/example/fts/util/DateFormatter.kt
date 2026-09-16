@@ -13,15 +13,8 @@ object DateFormatter {
     private val dateFormat = SimpleDateFormat(DATE_PATTERN, Locale.getDefault())
     private val timeFormat = SimpleDateFormat(TIME_PATTERN, Locale.getDefault())
 
-    fun formatDateTime(timestamp: Long): String {
-        return dateTimeFormat.format(Date(timestamp))
-    }
-
-    fun formatDate(timestamp: Long): String {
-        return dateFormat.format(Date(timestamp))
-    }
-
-    fun formatTime(timestamp: Long): String {
-        return timeFormat.format(Date(timestamp))
-    }
+    fun format(timestamp: Long): String = formatDateTime(timestamp)
+    fun formatDateTime(timestamp: Long): String = dateTimeFormat.format(Date(timestamp))
+    fun formatDate(timestamp: Long): String = dateFormat.format(Date(timestamp))
+    fun formatTime(timestamp: Long): String = timeFormat.format(Date(timestamp))
 }
