@@ -10,7 +10,6 @@ import com.example.fts.data.model.Diff
 import com.example.fts.data.model.EntryType
 import com.example.fts.data.model.Snapshot
 import com.example.fts.domain.diff.DiffEngine
-import com.example.fts.domain.export.DiffExporter
 import kotlinx.coroutines.launch
 
 class DiffViewModel(
@@ -99,6 +98,6 @@ class DiffViewModel(
         data class Removed(val path: String, val type: EntryType) : DiffItem()
         data class Modified(val path: String, val changes: Map<String, Pair<Any?, Any?>>) : DiffItem()
         data class Renamed(val oldPath: String, val newPath: String) : DiffItem()
-        data class Moved(val oldPath: String, val newPath: String)
+        data class Moved(val oldPath: String, val newPath: String) : DiffItem()
     }
 }
