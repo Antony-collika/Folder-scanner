@@ -15,6 +15,9 @@ import com.example.fts.data.model.MarkdownModel
 import com.example.fts.domain.export.JsonExporter
 import com.example.fts.domain.export.MarkdownExporter
 import com.example.fts.ui.diff.DiffActivity
+import com.example.fts.util.Constants
+import com.example.fts.util.DateFormatter
+import com.example.fts.util.FileSizeFormatter
 
 class TreeActivity : AppCompatActivity() {
     private lateinit var viewModel: TreeViewModel
@@ -41,7 +44,7 @@ class TreeActivity : AppCompatActivity() {
         val rootUri = intent.getStringExtra(EXTRA_ROOT_URI)
         val displayName = intent.getStringExtra(EXTRA_DISPLAY_NAME) ?: ""
         if (rootUri == null) {
-            Toast.makeText(this, "Error: No folder selected", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Lỗi: Không có thư mục được chọn", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -62,8 +65,8 @@ class TreeActivity : AppCompatActivity() {
             })
         }
         viewModel.exportResult.observe(this) { result ->
-            result.onSuccess { Toast.makeText(this, "Exported successfully", Toast.LENGTH_SHORT).show() }
-                .onFailure { e -> Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show() }
+            result.onSuccess { Toast.makeText(this, "Đã xuất thành công", Toast.LENGTH_SHORT).show() }
+                .onFailure { e -> Toast.makeText(this, "Xuất thất bại: ${e.message}", Toast.LENGTH_SHORT).show() }
         }
         viewModel.loadData()
     }
@@ -72,15 +75,20 @@ class TreeActivity : AppCompatActivity() {
         snapshot?.let {
             supportActionBar?.title = it.rootName
             headerRootName.text = it.rootName
-            headerScannedAt.text = "Scanned: " + com.example.fts.util.DateFormatter.formatDateTime(it.scannedAt)
-            headerStats.text = "${it.stats.totalEntries} entries | ${it.stats.totalFolders} folders | ${it.stats.totalFiles} files | ${com.example.fts.util.FileSizeFormatter.format(it.stats.totalSize)}"
+            headerScannedAt.text = "Quét lúc: " + DateFormatter.formatDateTime(it.scannedAt)
+            headerStats.text = "${it.stats.totalEntries} mục | ${it.stats.totalFolders} folder | ${it.stats.totalFiles} file | ${FileSizeFormatter.format(it.stats.totalSize)}"
         }
     }
 
     private fun showFileDetail(entry: com.example.fts.data.model.Entry) {
-        val sizeText = entry.size?.let { com.example.fts.util.FileSizeFormatter.format(it) } ?: "N/A"
+        val sizeText = entry.size?.let { FileSizeFormatter.format(it) } ?: "N/A"
         val mimeText = entry.mime ?: "N/A"
-        val detail = "Name: ${entry.name}\nType: ${entry.type}\nPath: ${entry.path}\nModified: ${com.example.fts.util.DateFormatter.formatDateTime(entry.modified)}\nSize: $sizeText\nMIME: $mimeText"
+        val detail = "Tên: ${entry.name}
+Loại: ${entry.type}
+Đường dẫn: ${entry.path}
+Sửa: ${DateFormatter.formatDateTime(entry.modified)}
+Kích thước: $sizeText
+MIME: $mimeText"
         Toast.makeText(this, detail, Toast.LENGTH_LONG).show()
     }
 
