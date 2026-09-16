@@ -38,7 +38,6 @@ class TreeActivity : AppCompatActivity() {
         modelLabel = findViewById(R.id.modelLabel)
         setSupportActionBar(findViewById(R.id.toolbar))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
         val searchInput = findViewById<EditText>(R.id.searchInput)
         val rootUri = intent.getStringExtra(EXTRA_ROOT_URI)
         val displayName = intent.getStringExtra(EXTRA_DISPLAY_NAME) ?: ""
@@ -48,7 +47,6 @@ class TreeActivity : AppCompatActivity() {
         adapter = TreeAdapter(viewModel.markdownModel(), viewModel.showMetadataInMarkdown(), { viewModel.toggleFolder(it) }, { showFileDetail(it) }, { copyPath(it.path) })
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
-
         findViewById<Button>(R.id.sortButton).setOnClickListener { showSortDialog() }
         findViewById<Button>(R.id.exportButton).setOnClickListener { exportMarkdown() }
         findViewById<Button>(R.id.rescanButton).setOnClickListener { viewModel.rescan() }
@@ -70,8 +68,8 @@ class TreeActivity : AppCompatActivity() {
         viewModel.isLoading.observe(this) { loading ->
             findViewById<Button>(R.id.rescanButton).isEnabled = !loading
             findViewById<Button>(R.id.exportButton).isEnabled = !loading
+            findViewById<Button>(R.id.sortButton).isEnabled = !loading
         }
-
         searchInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { viewModel.search(s?.toString().orEmpty()) }
@@ -82,13 +80,12 @@ class TreeActivity : AppCompatActivity() {
     }
 
     private fun updateModelLabel() {
-        val text = when (viewModel.markdownModel()) {
+        modelLabel.text = when (viewModel.markdownModel()) {
             MarkdownModel.A -> "Đang hiển thị: Mô hình A · Heading + danh sách phẳng"
             MarkdownModel.B -> "Đang hiển thị: Mô hình B · Heading + dải phân cách"
             MarkdownModel.C -> "Đang hiển thị: Mô hình C · Danh sách lồng"
             MarkdownModel.D -> "Đang hiển thị: Mô hình D · Cây ASCII"
         }
-        modelLabel.text = text
         adapter.configure(viewModel.markdownModel(), viewModel.showMetadataInMarkdown())
     }
 
@@ -97,9 +94,9 @@ class TreeActivity : AppCompatActivity() {
         val values = arrayOf("name", "date", "size", "type")
         val current = values.indexOf(viewModel.sortOrder()).coerceAtLeast(0)
         AlertDialog.Builder(this).setTitle("Sắp xếp cây").setSingleChoiceItems(labels, current) { dialog, which ->
-            // Preferences are owned by Settings; this dialog is informational and points users to the setting.
+            viewModel.setSortOrder(values[which])
+            Toast.makeText(this, "Đã sắp xếp theo ${labels[which]}", Toast.LENGTH_SHORT).show()
             dialog.dismiss()
-            Toast.makeText(this, "Thay đổi thứ tự trong Cài đặt → Thứ tự sắp xếp", Toast.LENGTH_LONG).show()
         }.show()
     }
 
@@ -107,7 +104,6 @@ class TreeActivity : AppCompatActivity() {
         currentMarkdown()?.let { viewModel.prepareExport(it, "md"); createDocumentLauncher.launch("tree_${viewModel.displayName}_${System.currentTimeMillis()}.md") }
     }
     private fun currentMarkdown(): String? = viewModel.snapshot.value?.let { MarkdownExporter.export(it, viewModel.markdownModel(), viewModel.showMetadataInMarkdown()) }
-
     private fun showFileDetail(entry: Entry) {
         val size = entry.size?.let(FileSizeFormatter::format) ?: "N/A"
         val details = "Tên: ${entry.name}\nĐường dẫn: ${entry.path}\nNgày sửa: ${DateFormatter.formatDateTime(entry.modified)}\nKích thước: $size\nMIME: ${entry.mime ?: "N/A"}"
@@ -118,7 +114,6 @@ class TreeActivity : AppCompatActivity() {
         Toast.makeText(this, "Đã copy đường dẫn", Toast.LENGTH_SHORT).show()
     }
     private fun openDiff(rootUri: String, displayName: String) { startActivity(Intent(this, DiffActivity::class.java).apply { putExtra(EXTRA_ROOT_URI, rootUri); putExtra(EXTRA_DISPLAY_NAME, displayName) }) }
-
     override fun onCreateOptionsMenu(menu: Menu): Boolean { menuInflater.inflate(R.menu.menu_tree, menu); return true }
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         android.R.id.home -> { finish(); true }
