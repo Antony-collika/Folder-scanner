@@ -13,6 +13,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.fts.R
 import com.example.fts.domain.export.DiffExporter
 import com.example.fts.ui.tree.TreeActivity
+import com.example.fts.util.Constants
+import com.example.fts.util.DateFormatter
 
 class DiffActivity : AppCompatActivity() {
 
@@ -46,7 +48,7 @@ class DiffActivity : AppCompatActivity() {
         val displayName = intent.getStringExtra(TreeActivity.EXTRA_DISPLAY_NAME) ?: ""
 
         if (rootUri == null) {
-            Toast.makeText(this, "Error: No folder selected", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Lỗi: Không có thư mục được chọn", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -64,9 +66,9 @@ class DiffActivity : AppCompatActivity() {
 
         viewModel.exportResult.observe(this) { result ->
             result.onSuccess {
-                Toast.makeText(this, "Exported successfully", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Đã xuất thành công", Toast.LENGTH_SHORT).show()
             }.onFailure { e ->
-                Toast.makeText(this, "Export failed: " + e.message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Xuất thất bại: " + e.message, Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -77,9 +79,10 @@ class DiffActivity : AppCompatActivity() {
         val diff = viewModel.diff.value
         diff?.let {
             supportActionBar?.title = "Diff: " + viewModel.displayName
-            headerFromTime.text = "From: " + com.example.fts.util.DateFormatter.formatDateTime(it.fromScannedAt)
-            headerToTime.text = "To: " + com.example.fts.util.DateFormatter.formatDateTime(it.toScannedAt)
-            headerTotalChanges.text = "Total changes: " + (it.added.size + it.removed.size + it.modified.size + it.renamed.size + it.moved.size).toString()
+            headerFromTime.text = "Từ: " + DateFormatter.formatDateTime(it.fromScannedAt)
+            headerToTime.text = "Đến: " + DateFormatter.formatDateTime(it.toScannedAt)
+            val totalChanges = it.added.size + it.removed.size + it.modified.size + it.renamed.size + it.moved.size
+            headerTotalChanges.text = "Tổng thay đổi: $totalChanges"
         }
     }
 
@@ -98,7 +101,7 @@ class DiffActivity : AppCompatActivity() {
                 val diff = viewModel.diff.value
                 diff?.let {
                     val markdown = DiffExporter.exportMarkdown(it, viewModel.displayName)
-                    val filename = "diff_" + viewModel.displayName + "_" + System.currentTimeMillis() + ".md"
+                    val filename = "diff_${viewModel.displayName}_${System.currentTimeMillis()}.md"
                     createDocumentLauncher.launch(filename)
                     viewModel.prepareExport(markdown, "md")
                 }
