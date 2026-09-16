@@ -21,11 +21,7 @@ class TreeAdapter(
 ) : RecyclerView.Adapter<TreeAdapter.TreeViewHolder>() {
     private var treeItems: List<FlatNode> = emptyList()
 
-    fun configure(model: MarkdownModel, showMetadata: Boolean) {
-        this.model = model
-        this.showMetadata = showMetadata
-        notifyDataSetChanged()
-    }
+    fun configure(model: MarkdownModel, showMetadata: Boolean) { this.model = model; this.showMetadata = showMetadata; notifyDataSetChanged() }
 
     inner class TreeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val icon: ImageView = itemView.findViewById(R.id.icon)
@@ -39,39 +35,23 @@ class TreeAdapter(
             icon.setImageResource(if (entry.type == EntryType.FOLDER) R.drawable.ic_folder else R.drawable.ic_file)
             val suffix = if (entry.type == EntryType.FOLDER && model != MarkdownModel.A && model != MarkdownModel.B) "/" else ""
             name.text = entry.name + suffix
-
             prefix.text = when (model) {
-                MarkdownModel.A -> "#".repeat((node.depth + 1).coerceAtMost(6)) + " "
-                MarkdownModel.B -> if (entry.type == EntryType.FOLDER) "#".repeat((node.depth + 1).coerceAtMost(6)) + " " else ""
+                MarkdownModel.A -> if (entry.type == EntryType.FOLDER) "#".repeat((node.depth + 1).coerceAtMost(6)) + " " else "- "
+                MarkdownModel.B -> if (entry.type == EntryType.FOLDER) "#".repeat((node.depth + 1).coerceAtMost(6)) + " " else "  "
                 MarkdownModel.C -> "  ".repeat(node.depth) + "- "
                 MarkdownModel.D -> asciiPrefix(position, node.depth)
             }
-            prefix.visibility = if (model == MarkdownModel.D || model == MarkdownModel.C || model == MarkdownModel.A || model == MarkdownModel.B) View.VISIBLE else View.GONE
-
-            if (entry.type == EntryType.FILE && entry.size != null) {
-                size.text = FileSizeFormatter.format(entry.size)
-                size.visibility = View.VISIBLE
-            } else size.visibility = View.GONE
-            if (showMetadata) {
-                itemView.contentDescription = "${entry.name}, ${entry.path}, ${entry.size?.let(FileSizeFormatter::format) ?: "folder"}"
-            } else itemView.contentDescription = entry.name
-
-            if (entry.type == EntryType.FOLDER && node.hasChildren) {
-                expandIcon.setImageResource(if (node.isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
-                expandIcon.visibility = View.VISIBLE
-            } else expandIcon.visibility = View.INVISIBLE
-
-            itemView.setOnClickListener {
-                if (entry.type == EntryType.FOLDER && node.hasChildren) onFolderClick(entry.documentId)
-                else if (entry.type == EntryType.FILE) onFileClick(entry)
-            }
+            prefix.setTypeface(android.graphics.Typeface.MONOSPACE)
+            if (entry.type == EntryType.FILE && entry.size != null) { size.text = FileSizeFormatter.format(entry.size); size.visibility = View.VISIBLE } else size.visibility = View.GONE
+            itemView.contentDescription = if (showMetadata) "${entry.name}, ${entry.path}, ${entry.size?.let(FileSizeFormatter::format) ?: "folder"}" else entry.name
+            if (entry.type == EntryType.FOLDER && node.hasChildren) { expandIcon.setImageResource(if (node.isExpanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more); expandIcon.visibility = View.VISIBLE } else expandIcon.visibility = View.INVISIBLE
+            itemView.setOnClickListener { if (entry.type == EntryType.FOLDER && node.hasChildren) onFolderClick(entry.documentId) else if (entry.type == EntryType.FILE) onFileClick(entry) }
             itemView.setOnLongClickListener { onLongClick(entry); true }
         }
 
         private fun asciiPrefix(position: Int, depth: Int): String {
             if (depth == 0) return ""
-            val parts = mutableListOf<String>()
-            var childDepth = depth
+            val parts = mutableListOf<String>(); var childDepth = depth
             for (i in position - 1 downTo 0) {
                 val previous = treeItems[i]
                 if (previous.depth < childDepth) {
@@ -87,8 +67,7 @@ class TreeAdapter(
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TreeViewHolder =
-        TreeViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_tree_entry, parent, false))
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TreeViewHolder = TreeViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_tree_entry, parent, false))
     override fun onBindViewHolder(holder: TreeViewHolder, position: Int) = holder.bind(treeItems[position], position)
     override fun getItemCount(): Int = treeItems.size
     fun submitList(newList: List<FlatNode>) { treeItems = newList; notifyDataSetChanged() }
