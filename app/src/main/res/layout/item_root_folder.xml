@@ -1,40 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp"
-    android:background="@drawable/card_background">
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
 
-    <TextView
-        android:id="@+id/tv_name"
+    <androidx.core.widget.LinearLayoutCompat
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="@style/TextAppearance.AppCompat.Large"
-        android:textColor="@color/black" />
+        android:orientation="vertical"
+        android:padding="16dp">
 
-    <TextView
-        android:id="@+id/tv_count"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-        android:textColor="@color/gray" />
+        <androidx.core.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-    <TextView
-        android:id="@+id/tv_date"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textAppearance="@style/TextAppearance.AppCompat.Small"
-        android:textColor="@color/gray" />
+            <ImageView
+                android:id="@+id/icon"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_folder"
+                android:contentDescription="Folder icon" />
 
-    <Button
-        android:id="@+id/btn_scan"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Scan"
-        android:textAllCaps="false" />
+            <androidx.core.widget.LinearLayoutCompat
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:orientation="vertical">
 
-</LinearLayout>
+                <TextView
+                    android:id="@+id/folderName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    tools:text="Download" />
+
+                <TextView
+                    android:id="@+id/folderInfo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textSize="14sp"
+                    android:textColor="?android:attr/textColorSecondary"
+                    tools:text="30.123 mục • Quét lần cuối: 3 ngày trước" />
+
+            </androidx.core.widget.LinearLayoutCompat>
+
+        </androidx.core.widget.LinearLayoutCompat>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_scan"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_gravity="end"
+            android:text="Quét lại"
+            android:textAllCaps="false"
+            app:icon="@drawable/ic_refresh"
+            app:iconGravity="start"
+            app:iconPadding="4dp" />
+
+    </androidx.core.widget.LinearLayoutCompat>
+
+</androidx.cardview.widget.CardView>
