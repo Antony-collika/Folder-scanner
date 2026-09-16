@@ -17,7 +17,6 @@ import com.example.fts.domain.export.MarkdownExporter
 import com.example.fts.ui.diff.DiffActivity
 
 class TreeActivity : AppCompatActivity() {
-
     private lateinit var viewModel: TreeViewModel
     private lateinit var adapter: TreeAdapter
     private lateinit var recyclerView: RecyclerView
@@ -25,28 +24,22 @@ class TreeActivity : AppCompatActivity() {
     private lateinit var headerScannedAt: TextView
     private lateinit var headerStats: TextView
 
-    private val createDocumentLauncher = registerForActivityResult(
-        ActivityResultContracts.CreateDocument()
-    ) { uri ->
+    private val createDocumentLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument()) { uri ->
         uri?.let { viewModel.onExportFileCreated(it) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_tree)
-
         recyclerView = findViewById(R.id.recyclerView)
         headerRootName = findViewById(R.id.rootName)
         headerScannedAt = findViewById(R.id.scannedAt)
         headerStats = findViewById(R.id.stats)
-
-        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
+        setSupportActionBar(findViewById(R.id.toolbar))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         val rootUri = intent.getStringExtra(EXTRA_ROOT_URI)
         val displayName = intent.getStringExtra(EXTRA_DISPLAY_NAME) ?: ""
-
         if (rootUri == null) {
             Toast.makeText(this, "Error: No folder selected", Toast.LENGTH_SHORT).show()
             finish()
@@ -54,40 +47,24 @@ class TreeActivity : AppCompatActivity() {
         }
 
         viewModel = TreeViewModel(rootUri, displayName, application)
-
         adapter = TreeAdapter(
             onFolderClick = { documentId -> viewModel.toggleFolder(documentId) },
             onFileClick = { entry -> showFileDetail(entry) }
         )
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
-
-        viewModel.treeItems.observe(this) { items ->
-            adapter.submitList(items)
-        }
-
-        viewModel.snapshot.observe(this) { snapshot ->
-            updateHeader(snapshot)
-        }
-
+        viewModel.treeItems.observe(this) { adapter.submitList(it) }
+        viewModel.snapshot.observe(this) { updateHeader(it) }
         viewModel.showDiff.observe(this) { show ->
-            if (show) {
-                val diffIntent = Intent(this, DiffActivity::class.java).apply {
-                    putExtra(EXTRA_ROOT_URI, rootUri)
-                    putExtra(EXTRA_DISPLAY_NAME, displayName)
-                }
-                startActivity(diffIntent)
-            }
+            if (show) startActivity(Intent(this, DiffActivity::class.java).apply {
+                putExtra(EXTRA_ROOT_URI, rootUri)
+                putExtra(EXTRA_DISPLAY_NAME, displayName)
+            })
         }
-
         viewModel.exportResult.observe(this) { result ->
-            result.onSuccess {
-                Toast.makeText(this, "Exported successfully", Toast.LENGTH_SHORT).show()
-            }.onFailure { e ->
-                Toast.makeText(this, "Export failed: " + e.message, Toast.LENGTH_SHORT).show()
-            }
+            result.onSuccess { Toast.makeText(this, "Exported successfully", Toast.LENGTH_SHORT).show() }
+                .onFailure { e -> Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show() }
         }
-
         viewModel.loadData()
     }
 
@@ -96,14 +73,14 @@ class TreeActivity : AppCompatActivity() {
             supportActionBar?.title = it.rootName
             headerRootName.text = it.rootName
             headerScannedAt.text = "Scanned: " + com.example.fts.util.DateFormatter.formatDateTime(it.scannedAt)
-            headerStats.text = it.stats.totalEntries.toString() + " entries | " + it.stats.totalFolders.toString() + " folders | " + it.stats.totalFiles.toString() + " files | " + com.example.fts.util.FileSizeFormatter.format(it.stats.totalSize)
+            headerStats.text = "${it.stats.totalEntries} entries | ${it.stats.totalFolders} folders | ${it.stats.totalFiles} files | ${com.example.fts.util.FileSizeFormatter.format(it.stats.totalSize)}"
         }
     }
 
     private fun showFileDetail(entry: com.example.fts.data.model.Entry) {
         val sizeText = entry.size?.let { com.example.fts.util.FileSizeFormatter.format(it) } ?: "N/A"
         val mimeText = entry.mime ?: "N/A"
-        val detail = "Name: " + entry.name + "\nType: " + entry.type + "\nPath: " + entry.path + "\nModified: " + com.example.fts.util.DateFormatter.formatDateTime(entry.modified) + "\nSize: " + sizeText + "\nMIME: " + mimeText
+        val detail = "Name: ${entry.name}\nType: ${entry.type}\nPath: ${entry.path}\nModified: ${com.example.fts.util.DateFormatter.formatDateTime(entry.modified)}\nSize: $sizeText\nMIME: $mimeText"
         Toast.makeText(this, detail, Toast.LENGTH_LONG).show()
     }
 
@@ -112,41 +89,23 @@ class TreeActivity : AppCompatActivity() {
         return true
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            android.R.id.home -> {
-                finish()
-                true
-            }
-            R.id.action_export_md -> {
-                val markdown = viewModel.snapshot.value?.let { snapshot ->
-                    val model = MarkdownModel.D
-                    MarkdownExporter.export(snapshot, model)
-                } ?: ""
-                val filename = "tree_" + viewModel.displayName + "_" + System.currentTimeMillis() + ".md"
-                createDocumentLauncher.launch(filename)
-                viewModel.prepareExport(markdown, "md")
-                true
-            }
-            R.id.action_export_json -> {
-                val json = viewModel.snapshot.value?.let { snapshot ->
-                    JsonExporter.export(snapshot)
-                } ?: ""
-                val filename = "tree_" + viewModel.displayName + "_" + System.currentTimeMillis() + ".json"
-                createDocumentLauncher.launch(filename)
-                viewModel.prepareExport(json, "json")
-                true
-            }
-            R.id.action_scan_again -> {
-                viewModel.rescan()
-                true
-            }
-            R.id.action_view_diff -> {
-                viewModel.showDiff.value = true
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
+    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+        android.R.id.home -> { finish(); true }
+        R.id.action_export_md -> {
+            val markdown = viewModel.snapshot.value?.let { MarkdownExporter.export(it, MarkdownModel.D) } ?: ""
+            viewModel.prepareExport(markdown, "md")
+            createDocumentLauncher.launch("tree_${viewModel.displayName}_${System.currentTimeMillis()}.md")
+            true
         }
+        R.id.action_export_json -> {
+            val json = viewModel.snapshot.value?.let { JsonExporter.export(it) } ?: ""
+            viewModel.prepareExport(json, "json")
+            createDocumentLauncher.launch("tree_${viewModel.displayName}_${System.currentTimeMillis()}.json")
+            true
+        }
+        R.id.action_scan_again -> { viewModel.rescan(); true }
+        R.id.action_view_diff -> { viewModel.requestShowDiff(); true }
+        else -> super.onOptionsItemSelected(item)
     }
 
     companion object {
