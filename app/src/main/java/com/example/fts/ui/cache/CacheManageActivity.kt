@@ -41,9 +41,9 @@ class CacheManageActivity : AppCompatActivity() {
 
         viewModel.deleteResult.observe(this) { result ->
             result.onSuccess {
-                Toast.makeText(this, "Cache deleted", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Đã xóa cache", Toast.LENGTH_SHORT).show()
             }.onFailure { e ->
-                Toast.makeText(this, "Delete failed: " + e.message, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Xóa thất bại: " + e.message, Toast.LENGTH_SHORT).show()
             }
         }
 
