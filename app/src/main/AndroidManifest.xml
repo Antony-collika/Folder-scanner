@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     package="com.example.fts">
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
@@ -15,36 +15,20 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <activity
-            android:name=".ui.main.MainActivity"
-            android:exported="true">
+        <activity android:name=".ui.main.MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".ui.tree.TreeActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.diff.DiffActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.settings.SettingsActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".ui.cache.CacheManageActivity"
-            android:exported="false" />
+        <activity android:name=".ui.tree.TreeActivity" android:exported="false" />
+        <activity android:name=".ui.diff.DiffActivity" android:exported="false" />
+        <activity android:name=".ui.settings.SettingsActivity" android:exported="false" />
+        <activity android:name=".ui.cache.CacheManageActivity" android:exported="false" />
 
         <service
             android:name=".service.ScanService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
-
     </application>
-
 </manifest>
