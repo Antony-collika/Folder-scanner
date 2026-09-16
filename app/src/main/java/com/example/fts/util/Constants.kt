@@ -7,12 +7,12 @@ object Constants {
     const val NOTIFICATION_ID_SCAN = 1001
     const val NOTIFICATION_ID_SCAN_COMPLETE = 1002
     
-    // Extras
+    // Extras - FIX: Use consistent names
     const val EXTRA_URI = "extra_uri"
     const val EXTRA_DISPLAY_NAME = "extra_display_name"
     const val EXTRA_INCREMENTAL = "extra_incremental"
     
-    // Service extras
+    // Service extras (use same as EXTRA)
     const val SERVICE_EXTRA_URI = EXTRA_URI
     const val SERVICE_EXTRA_ROOT_NAME = EXTRA_DISPLAY_NAME
     const val SERVICE_EXTRA_IS_INCREMENTAL = EXTRA_INCREMENTAL
