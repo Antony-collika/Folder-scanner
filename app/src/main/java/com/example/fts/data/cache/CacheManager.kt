@@ -3,6 +3,7 @@ package com.example.fts.data.cache
 import android.content.Context
 import android.util.Log
 import com.example.fts.data.model.Snapshot
+import com.example.fts.util.Constants
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -10,7 +11,7 @@ import java.io.File
 class CacheManager(private val context: Context) {
     
     private val cacheDir: File
-        get() = File(context.filesDir, "snapshots").apply { mkdirs() }
+        get() = File(context.filesDir, Constants.CACHE_DIR_NAME).apply { mkdirs() }
     
     private val json = Json {
         prettyPrint = true
@@ -22,7 +23,7 @@ class CacheManager(private val context: Context) {
         try {
             file.writeText(json.encodeToString(snapshot))
         } catch (e: Exception) {
-            Log.e("CacheManager", "Error saving cache: ${file.name}", e)
+            Log.e("CacheManager", "Lỗi khi lưu cache: ${file.name}", e)
         }
     }
     
@@ -33,7 +34,7 @@ class CacheManager(private val context: Context) {
         return try {
             json.decodeFromString<Snapshot>(file.readText())
         } catch (e: Exception) {
-            Log.e("CacheManager", "Corrupted cache: ${file.name}", e)
+            Log.e("CacheManager", "Cache bị hỏng: ${file.name}", e)
             file.delete()
             null
         }
