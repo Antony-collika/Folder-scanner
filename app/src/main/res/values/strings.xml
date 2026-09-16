@@ -1,34 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- App name -->
     <string name="app_name">Folder Tree Snapshot</string>
-
-    <!-- Main Activity -->
     <string name="select_folder">Chọn thư mục</string>
     <string name="folder_already_added">Thư mục đã có trong danh sách</string>
     <string name="no_folder_selected">Chưa chọn thư mục</string>
-
-    <!-- Tree Activity -->
     <string name="tree_activity_title">Cây thư mục</string>
     <string name="error_no_folder">Lỗi: Không có thư mục được chọn</string>
     <string name="export_success">Đã xuất thành công</string>
     <string name="export_failed">Xuất thất bại: %s</string>
-
-    <!-- Diff Activity -->
     <string name="diff_activity_title">So sánh thay đổi</string>
     <string name="diff_from">Từ: %s</string>
     <string name="diff_to">Đến: %s</string>
     <string name="diff_total_changes">Tổng thay đổi: %d</string>
-
-    <!-- Cache Management -->
     <string name="cache_manage_title">Quản lý cache</string>
     <string name="cache_deleted">Đã xóa cache</string>
     <string name="cache_delete_failed">Xóa cache thất bại: %s</string>
-
-    <!-- Settings -->
     <string name="settings_title">Cài đặt</string>
-
-    <!-- Buttons -->
     <string name="btn_select_folder">Chọn thư mục mới</string>
     <string name="btn_scan">Quét</string>
     <string name="btn_scan_again">Quét lại</string>
@@ -38,17 +25,13 @@
     <string name="btn_export_diff">Xuất diff</string>
     <string name="btn_delete_cache">Xóa cache</string>
     <string name="btn_delete_all_cache">Xóa toàn bộ cache</string>
-
-    <!-- Notifications -->
-    <string name="notification_scan_start">Đang quét %s...</string>
-    <string name="notification_scan_progress">Đang quét %s... %d mục</string>
-    <string name="notification_scan_complete">Quét xong: %s: %d mục</string>
-    <string name="notification_scan_complete_with_changes">Quét xong: %s: %d mục, %d thay đổi</string>
+    <string name="notification_scan_start">Đang quét %1$s...</string>
+    <string name="notification_scan_progress">Đang quét %1$s... %2$d mục</string>
+    <string name="notification_scan_complete">Quét xong: %1$s: %2$d mục</string>
+    <string name="notification_scan_complete_with_changes">Quét xong: %1$s: %2$d mục, %3$d thay đổi</string>
     <string name="notification_scan_error">Lỗi quét: %s</string>
     <string name="notification_channel_name">Folder scan</string>
     <string name="notification_channel_description">Thông báo quét thư mục</string>
-
-    <!-- File types -->
     <string name="file_type_folder">Thư mục</string>
     <string name="file_type_file">File</string>
 </resources>
