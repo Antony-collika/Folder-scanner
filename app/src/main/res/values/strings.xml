@@ -1,53 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- App name -->
     <string name="app_name">Folder Tree Snapshot</string>
-    <string name="select_folder">Select Folder</string>
-    <string name="scan">Scan</string>
-    <string name="scanning">Scanning...</string>
-    <string name="scan_complete">Scan Complete</string>
-    <string name="entries">%d entries</string>
-    <string name="folders">%d folders</string>
-    <string name="files">%d files</string>
-    <string name="total_size">Total: %s</string>
-    <string name="scanned_at">Scanned: %s</string>
-    <string name="export_md">Export Markdown</string>
-    <string name="export_json">Export JSON</string>
-    <string name="export_diff">Export Diff</string>
-    <string name="settings">Settings</string>
-    <string name="cache_management">Cache Management</string>
-    <string name="delete_cache">Delete Cache</string>
-    <string name="delete_all_cache">Delete All Cache</string>
-    <string name="view_diff">View Diff</string>
-    <string name="scan_again">Scan Again</string>
-    <string name="error_no_folder">No folder selected</string>
-    <string name="error_scan_failed">Scan failed</string>
-    <string name="error_export_failed">Export failed</string>
-    <string name="success">Success</string>
-    <string name="cancel">Cancel</string>
-    <string name="confirm">Confirm</string>
-    <string name="are_you_sure">Are you sure?</string>
-    <string name="cache_deleted">Cache deleted</string>
-    <string name="all_cache_deleted">All cache deleted</string>
 
-    <string name="pref_category_display">Display</string>
-    <string name="pref_markdown_model">Markdown model</string>
-    <string name="pref_show_metadata_in_md">Show metadata in Markdown</string>
-    <string name="pref_show_metadata_in_md_summary">Include file metadata in the Markdown output</string>
-    <string name="pref_sort_folders_first">Sort folders first</string>
-    <string name="pref_sort_folders_first_summary">Show folders before files</string>
-    <string name="pref_category_scan">Scan</string>
-    <string name="pref_skip_hidden_folders">Skip hidden folders</string>
-    <string name="pref_skip_hidden_folders_summary">Do not scan hidden folders</string>
-    <string name="pref_skip_hidden_files">Skip hidden files</string>
-    <string name="pref_skip_hidden_files_summary">Do not include hidden files</string>
-    <string name="pref_skip_system_junk">Skip system junk</string>
-    <string name="pref_skip_system_junk_summary">Skip common system and temporary files</string>
-    <string name="pref_max_depth">Maximum scan depth</string>
-    <string name="pref_max_depth_summary">Maximum directory depth; -1 means unlimited</string>
-    <string name="pref_category_notifications">Notifications</string>
-    <string name="pref_notification_enabled">Enable notifications</string>
-    <string name="pref_notification_enabled_summary">Show scan progress and completion notifications</string>
-    <string name="pref_category_cache">Cache</string>
-    <string name="pref_cache_management">Cache management</string>
-    <string name="pref_cache_management_summary">View and manage cached scan data</string>
+    <!-- Main Activity -->
+    <string name="select_folder">Chọn thư mục</string>
+    <string name="folder_already_added">Thư mục đã có trong danh sách</string>
+    <string name="no_folder_selected">Chưa chọn thư mục</string>
+
+    <!-- Tree Activity -->
+    <string name="tree_activity_title">Cây thư mục</string>
+    <string name="error_no_folder">Lỗi: Không có thư mục được chọn</string>
+    <string name="export_success">Đã xuất thành công</string>
+    <string name="export_failed">Xuất thất bại: %s</string>
+
+    <!-- Diff Activity -->
+    <string name="diff_activity_title">So sánh thay đổi</string>
+    <string name="diff_from">Từ: %s</string>
+    <string name="diff_to">Đến: %s</string>
+    <string name="diff_total_changes">Tổng thay đổi: %d</string>
+
+    <!-- Cache Management -->
+    <string name="cache_manage_title">Quản lý cache</string>
+    <string name="cache_deleted">Đã xóa cache</string>
+    <string name="cache_delete_failed">Xóa cache thất bại: %s</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Cài đặt</string>
+
+    <!-- Buttons -->
+    <string name="btn_select_folder">Chọn thư mục mới</string>
+    <string name="btn_scan">Quét</string>
+    <string name="btn_scan_again">Quét lại</string>
+    <string name="btn_export_md">Xuất Markdown</string>
+    <string name="btn_export_json">Xuất JSON</string>
+    <string name="btn_view_diff">Xem diff</string>
+    <string name="btn_export_diff">Xuất diff</string>
+    <string name="btn_delete_cache">Xóa cache</string>
+    <string name="btn_delete_all_cache">Xóa toàn bộ cache</string>
+
+    <!-- Notifications -->
+    <string name="notification_scan_start">Đang quét %s...</string>
+    <string name="notification_scan_progress">Đang quét %s... %d mục</string>
+    <string name="notification_scan_complete">Quét xong: %s: %d mục</string>
+    <string name="notification_scan_complete_with_changes">Quét xong: %s: %d mục, %d thay đổi</string>
+    <string name="notification_scan_error">Lỗi quét: %s</string>
+    <string name="notification_channel_name">Folder scan</string>
+    <string name="notification_channel_description">Thông báo quét thư mục</string>
+
+    <!-- File types -->
+    <string name="file_type_folder">Thư mục</string>
+    <string name="file_type_file">File</string>
 </resources>

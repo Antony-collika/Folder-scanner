@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="markdown_models">
-        <item>Heading + Flat List (A)</item>
-        <item>Heading + Separator (B)</item>
-        <item>Nested List (C)</item>
-        <item>ASCII Tree (D)</item>
+        <item>Mô hình A (Heading + danh sách phẳng)</item>
+        <item>Mô hình B (Heading + dải phân cách)</item>
+        <item>Mô hình C (Danh sách lồng)</item>
+        <item>Mô hình D (Cây ASCII)</item>
     </string-array>
 
     <string-array name="markdown_model_values">
@@ -12,5 +12,19 @@
         <item>B</item>
         <item>C</item>
         <item>D</item>
+    </string-array>
+
+    <string-array name="sort_orders">
+        <item>Tên (A-Z)</item>
+        <item>Ngày sửa (mới nhất)</item>
+        <item>Kích thước (lớn nhất)</item>
+        <item>Loại (folder trước)</item>
+    </string-array>
+
+    <string-array name="sort_order_values">
+        <item>name</item>
+        <item>date</item>
+        <item>size</item>
+        <item>type</item>
     </string-array>
 </resources>
