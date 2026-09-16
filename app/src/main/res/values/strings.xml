@@ -28,4 +28,26 @@
     <string name="are_you_sure">Are you sure?</string>
     <string name="cache_deleted">Cache deleted</string>
     <string name="all_cache_deleted">All cache deleted</string>
+
+    <string name="pref_category_display">Display</string>
+    <string name="pref_markdown_model">Markdown model</string>
+    <string name="pref_show_metadata_in_md">Show metadata in Markdown</string>
+    <string name="pref_show_metadata_in_md_summary">Include file metadata in the Markdown output</string>
+    <string name="pref_sort_folders_first">Sort folders first</string>
+    <string name="pref_sort_folders_first_summary">Show folders before files</string>
+    <string name="pref_category_scan">Scan</string>
+    <string name="pref_skip_hidden_folders">Skip hidden folders</string>
+    <string name="pref_skip_hidden_folders_summary">Do not scan hidden folders</string>
+    <string name="pref_skip_hidden_files">Skip hidden files</string>
+    <string name="pref_skip_hidden_files_summary">Do not include hidden files</string>
+    <string name="pref_skip_system_junk">Skip system junk</string>
+    <string name="pref_skip_system_junk_summary">Skip common system and temporary files</string>
+    <string name="pref_max_depth">Maximum scan depth</string>
+    <string name="pref_max_depth_summary">Maximum directory depth; -1 means unlimited</string>
+    <string name="pref_category_notifications">Notifications</string>
+    <string name="pref_notification_enabled">Enable notifications</string>
+    <string name="pref_notification_enabled_summary">Show scan progress and completion notifications</string>
+    <string name="pref_category_cache">Cache</string>
+    <string name="pref_cache_management">Cache management</string>
+    <string name="pref_cache_management_summary">View and manage cached scan data</string>
 </resources>
