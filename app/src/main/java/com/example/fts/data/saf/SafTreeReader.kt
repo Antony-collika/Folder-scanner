@@ -15,7 +15,7 @@ class SafTreeReader(private val context: Context) {
         onProgress: (ScanProgress) -> Unit
     ): Entry {
         val rootDoc = SafDocument.fromTreeUri(context, rootUri)
-            ?: throw SafException("Cannot open root directory")
+            ?: throw SafException("Không thể mở thư mục gốc")
 
         val rootEntry = Entry(
             name = rootDoc.name ?: "root",
@@ -74,5 +74,3 @@ class SafTreeReader(private val context: Context) {
 
     private fun getDepth(path: String): Int = if (path.isEmpty()) 0 else path.count { it == '/' } + 1
 }
-
-class SafException(message: String) : Exception(message)
