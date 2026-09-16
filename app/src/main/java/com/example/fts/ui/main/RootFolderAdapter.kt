@@ -13,39 +13,44 @@ class RootFolderAdapter(
     private val onClick: (RootFolder) -> Unit,
     private val onScanClick: (RootFolder) -> Unit
 ) : RecyclerView.Adapter<RootFolderAdapter.RootFolderViewHolder>() {
-
-    private var items: List<RootFolder> = emptyList()
-
+    
+    private var rootFolders: List<RootFolder> = emptyList()
+    
     inner class RootFolderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val nameTextView: TextView = itemView.findViewById(R.id.tv_name)
-        val countTextView: TextView = itemView.findViewById(R.id.tv_count)
-        val dateTextView: TextView = itemView.findViewById(R.id.tv_date)
-        val scanButton: View = itemView.findViewById(R.id.btn_scan)
+        private val nameTextView: TextView = itemView.findViewById(R.id.folderName)
+        private val infoTextView: TextView = itemView.findViewById(R.id.folderInfo)
+        private val scanButton: View = itemView.findViewById(R.id.btn_scan)
+        
+        fun bind(rootFolder: RootFolder) {
+            itemView.setOnClickListener { onClick(rootFolder) }
+            scanButton.setOnClickListener { onScanClick(rootFolder) }
+            
+            nameTextView.text = rootFolder.displayName
+            
+            val info = buildString {
+                append("${rootFolder.entryCount ?: 0} mục")
+                rootFolder.lastScannedAt?.let { lastScanned ->
+                    append(" • Quét lần cuối: ${DateFormatter.formatDateTime(lastScanned)}")
+                }
+            }
+            infoTextView.text = info
+        }
     }
-
+    
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RootFolderViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_root_folder, parent, false)
         return RootFolderViewHolder(view)
     }
-
+    
     override fun onBindViewHolder(holder: RootFolderViewHolder, position: Int) {
-        val item = items[position]
-
-        holder.nameTextView.text = item.displayName
-        holder.countTextView.text = item.entryCount?.let { it.toString() + " entries" } ?: "0 entries"
-        holder.dateTextView.text = item.lastScannedAt?.let {
-            DateFormatter.formatDateTime(it)
-        } ?: "Never scanned"
-
-        holder.itemView.setOnClickListener { onClick(item) }
-        holder.scanButton.setOnClickListener { onScanClick(item) }
+        holder.bind(rootFolders[position])
     }
-
-    override fun getItemCount(): Int = items.size
-
-    fun submitList(newItems: List<RootFolder>) {
-        items = newItems
+    
+    override fun getItemCount(): Int = rootFolders.size
+    
+    fun submitList(newList: List<RootFolder>) {
+        rootFolders = newList
         notifyDataSetChanged()
     }
 }
