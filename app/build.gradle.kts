@@ -59,7 +59,4 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-
-    // Material Icons
-    implementation("com.google.android.material:material-icons-extended:1.5.0")
 }
