@@ -20,26 +20,11 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v5
-      with:
-        gradle-version: '8.4'
-
     - name: Make gradlew executable
       run: chmod +x gradlew
 
     - name: Build with Gradle
       run: ./gradlew assembleDebug --no-daemon --stacktrace
-
-    - name: Upload build log
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-log
-        path: |-
-          **/build-log.txt
-          **/build.log
-        retention-days: 7
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
