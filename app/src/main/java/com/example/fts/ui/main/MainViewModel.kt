@@ -10,32 +10,27 @@ import com.example.fts.data.repository.RootFolderRepository
 import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-
     private val repository = RootFolderRepository(application)
-
     private val _rootFolders = MutableLiveData<List<RootFolder>>()
     val rootFolders: LiveData<List<RootFolder>> = _rootFolders
 
-    init {
-        loadRootFolders()
-    }
+    init { loadRootFolders() }
 
     fun loadRootFolders() {
-        viewModelScope.launch {
-            _rootFolders.value = repository.getAll()
-        }
+        viewModelScope.launch { _rootFolders.value = repository.getAll() }
     }
 
     fun saveRootFolder(rootFolder: RootFolder) {
         viewModelScope.launch {
-            repository.save(rootFolder)
+            if (repository.getByUri(rootFolder.uri) == null) repository.add(rootFolder)
+            else repository.update(rootFolder)
             loadRootFolders()
         }
     }
 
     fun deleteRootFolder(uri: String) {
         viewModelScope.launch {
-            repository.delete(uri)
+            repository.remove(uri)
             loadRootFolders()
         }
     }
