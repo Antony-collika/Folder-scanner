@@ -18,7 +18,6 @@ data class DiffItem(
     val type: EntryType
 )
 
-@Serializable
 data class ModifiedItem(
     val path: String,
     val changes: Map<String, Pair<Any?, Any?>>
