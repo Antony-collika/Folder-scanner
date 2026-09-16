@@ -1,6 +1,8 @@
 package com.example.fts.ui.main
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
@@ -9,13 +11,13 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.fts.R
 import com.example.fts.data.cache.CacheManager
 import com.example.fts.data.model.RootFolder
-import com.example.fts.data.repository.SettingsRepository
 import com.example.fts.data.saf.SafPermission
 import com.example.fts.domain.scanner.Scanner
 import com.example.fts.service.ScanService
@@ -29,20 +31,15 @@ import kotlinx.coroutines.withContext
 import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var viewModel: MainViewModel
-    private lateinit var adapter: RootFolderAdapter
-    private lateinit var recyclerView: RecyclerView
+    private lateinit var viewModel: MainViewModel; private lateinit var adapter: RootFolderAdapter; private lateinit var recyclerView: RecyclerView
     private val selectFolderLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> uri?.let(::onFolderSelected) }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); setContentView(R.layout.activity_main); setSupportActionBar(findViewById(R.id.toolbar)); supportActionBar?.title = "Folder Tree Snapshot"
+        if (android.os.Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
         viewModel = MainViewModel(application); recyclerView = findViewById(R.id.recyclerView)
-        adapter = RootFolderAdapter(onClick = { root -> startActivity(Intent(this, TreeActivity::class.java).apply { putExtra(TreeActivity.EXTRA_ROOT_URI, root.uri); putExtra(TreeActivity.EXTRA_DISPLAY_NAME, root.displayName) } ) }, onScanClick = { root -> startScanService(root.uri, root.displayName, true) })
-        recyclerView.layoutManager = GridLayoutManager(this, 2); recyclerView.adapter = adapter
-        viewModel.rootFolders.observe(this) { adapter.submitList(it) }
-        findViewById<android.widget.Button>(R.id.btn_select_folder).setOnClickListener { selectFolderLauncher.launch(null) }
+        adapter = RootFolderAdapter(onClick = { root -> startActivity(Intent(this, TreeActivity::class.java).apply { putExtra(TreeActivity.EXTRA_ROOT_URI, root.uri); putExtra(TreeActivity.EXTRA_DISPLAY_NAME, root.displayName) }) }, onScanClick = { root -> startScanService(root.uri, root.displayName, true) })
+        recyclerView.layoutManager = GridLayoutManager(this, 2); recyclerView.adapter = adapter; viewModel.rootFolders.observe(this) { adapter.submitList(it) }; findViewById<android.widget.Button>(R.id.btn_select_folder).setOnClickListener { selectFolderLauncher.launch(null) }
     }
-
     private fun onFolderSelected(uri: Uri) {
         if (!SafPermission.takePersistableUriPermission(this, uri)) Toast.makeText(this, "Không thể lưu quyền truy cập. Thư mục chỉ dùng được trong phiên hiện tại.", Toast.LENGTH_LONG).show()
         val rootFolder = RootFolder(uri.toString(), getDisplayName(uri), System.currentTimeMillis())
@@ -51,11 +48,10 @@ class MainActivity : AppCompatActivity() {
         viewModel.saveRootFolder(rootFolder)
         lifecycleScope.launch {
             val estimate = withContext(Dispatchers.IO) { Scanner(this@MainActivity, CacheManager(this@MainActivity)).estimateCount(uri) }
-            val estimateText = if (estimate >= 10000) "ít nhất 10.000 mục" else "khoảng $estimate mục"
+            val large = estimate >= 100000; val estimateText = if (large) "ít nhất 100.000 mục — quá trình quét có thể lâu" else if (estimate >= 10000) "ít nhất 10.000 mục" else "khoảng $estimate mục"
             AlertDialog.Builder(this@MainActivity).setTitle("Xác nhận quét").setMessage("Ước tính $estimateText. Bắt đầu quét thư mục này?").setNegativeButton("Hủy", null).setPositiveButton("Quét") { _, _ -> startScanService(rootFolder.uri, rootFolder.displayName, false) }.show()
         }
     }
-
     private fun getDisplayName(uri: Uri): String { val segments = (uri.path ?: "").split("/").filter { it.isNotEmpty() }; return segments.lastOrNull() ?: "Folder ${UUID.randomUUID().toString().take(8)}" }
     private fun startScanService(rootUri: String, displayName: String, isIncremental: Boolean) { val intent = Intent(this, ScanService::class.java).apply { putExtra(Constants.EXTRA_URI, rootUri); putExtra(Constants.EXTRA_DISPLAY_NAME, displayName); putExtra(Constants.EXTRA_INCREMENTAL, isIncremental) }; if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent) }
     override fun onCreateOptionsMenu(menu: Menu): Boolean { menuInflater.inflate(R.menu.menu_main, menu); return true }
