@@ -6,7 +6,7 @@
         android:id="@+id/action_settings"
         android:title="Cài đặt"
         android:icon="@drawable/ic_settings"
-        app:showAsAction="never" />
+        app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/action_cache_management"
