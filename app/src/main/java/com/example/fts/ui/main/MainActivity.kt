@@ -15,7 +15,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.documentfile.provider.DocumentFile
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.fts.R
@@ -26,8 +29,8 @@ import com.example.fts.data.storage.BroadStorageAccess
 import com.example.fts.domain.export.JsonExporter
 import com.example.fts.domain.export.MarkdownExporter
 import com.example.fts.domain.scanner.Scanner
+import com.example.fts.service.ScanProgressBus
 import com.example.fts.service.ScanService
-import com.example.fts.ui.cache.CacheManageActivity
 import com.example.fts.ui.settings.SettingsActivity
 import com.example.fts.ui.tree.TreeActivity
 import com.example.fts.util.Constants
@@ -62,6 +65,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val safFolderLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            runCatching {
+                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+            val name = DocumentFile.fromTreeUri(this, uri)?.name?.ifBlank { "Thư mục đã chọn" } ?: "Thư mục đã chọn"
+            onFolderSelected(uri, name, "SAF")
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -80,7 +93,20 @@ class MainActivity : AppCompatActivity() {
             adapter.submitList(folders)
             emptyRoots.visibility = if (folders.isEmpty()) TextView.VISIBLE else TextView.GONE
         }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                ScanProgressBus.states.collect { states ->
+                    adapter.submitScanProgress(states.mapValues { it.value.count })
+                    if (states.isEmpty()) viewModel.loadRootFolders()
+                }
+            }
+        }
         findViewById<android.widget.Button>(R.id.btn_select_folder).setOnClickListener { chooseRoot() }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.loadRootFolders()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -90,24 +116,20 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         R.id.action_settings -> { startActivity(Intent(this, SettingsActivity::class.java)); true }
-        R.id.action_cache_management -> { startActivity(Intent(this, CacheManageActivity::class.java)); true }
         else -> super.onOptionsItemSelected(item)
     }
 
     private fun showRootActions(root: RootFolder) {
         val actions = arrayOf("Xem chi tiết", "Xuất Markdown", "Xuất JSON", "Quét lại", "Xóa")
-        AlertDialog.Builder(this)
-            .setTitle(root.displayName)
-            .setItems(actions) { _, which ->
-                when (which) {
-                    0 -> openTree(root)
-                    1 -> exportRoot(root, false)
-                    2 -> exportRoot(root, true)
-                    3 -> startScanService(root.uri, root.displayName, true)
-                    4 -> confirmRemoveRoot(root)
-                }
+        AlertDialog.Builder(this).setTitle(root.displayName).setItems(actions) { _, which ->
+            when (which) {
+                0 -> openTree(root)
+                1 -> exportRoot(root, false)
+                2 -> exportRoot(root, true)
+                3 -> startScanService(root.uri, root.displayName, true)
+                4 -> confirmRemoveRoot(root)
             }
-            .show()
+        }.show()
     }
 
     private fun openTree(root: RootFolder) {
@@ -124,78 +146,50 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, "Chưa có snapshot. Hãy quét thư mục trước.", Toast.LENGTH_SHORT).show()
                 return@launch
             }
-            val content = if (json) {
-                JsonExporter.export(snapshot)
-            } else {
-                MarkdownExporter.export(snapshot, settingsRepository.markdownModel(), settingsRepository.showMetadataInMarkdown(), settingsRepository.sortOrder())
-            }
+            val content = if (json) JsonExporter.export(snapshot)
+            else MarkdownExporter.export(snapshot, settingsRepository.markdownModel(), settingsRepository.showMetadataInMarkdown(), settingsRepository.sortOrder())
             pendingExport = content
             createDocumentLauncher.launch("tree_${root.displayName}_${System.currentTimeMillis()}.${if (json) "json" else "md"}")
         }
     }
 
     private fun confirmRemoveRoot(root: RootFolder) {
-        AlertDialog.Builder(this)
-            .setTitle("Xóa khỏi danh sách?")
+        AlertDialog.Builder(this).setTitle("Xóa khỏi danh sách?")
             .setMessage("Thư mục sẽ được bỏ khỏi màn hình chính. Snapshot/cache vẫn được giữ lại để có thể dùng khi thêm lại và quét lại sau này.")
             .setNegativeButton("Hủy", null)
-            .setPositiveButton("Xóa") { _, _ -> viewModel.deleteRootFolder(root.uri) }
-            .show()
+            .setPositiveButton("Xóa") { _, _ -> viewModel.deleteRootFolder(root.uri) }.show()
     }
-
-    override fun onResume() {
-        super.onResume()
-        if (BroadStorageAccess.hasAccess(this) && pendingPermissionRequest) {
-            pendingPermissionRequest = false
-            showFilesystemPicker(Environment.getExternalStorageDirectory())
-        }
-    }
-
-    private var pendingPermissionRequest = false
 
     private fun chooseRoot() {
-        if (!BroadStorageAccess.hasAccess(this)) {
-            pendingPermissionRequest = true
-            AlertDialog.Builder(this)
-                .setTitle("Cấp quyền truy cập toàn bộ tệp")
-                .setMessage("Ứng dụng cần quyền “Truy cập tất cả tệp” để duyệt và quét trực tiếp bằng API tệp của Android, nhanh hơn SAF. Quyền này có thể được cấp trong Cài đặt hệ thống.")
-                .setNegativeButton("Hủy", null)
-                .setPositiveButton("Mở Cài đặt") { _, _ -> BroadStorageAccess.request(this) }
-                .show()
+        if (BroadStorageAccess.hasAccess(this)) {
+            showFilesystemPicker(Environment.getExternalStorageDirectory())
             return
         }
-        showFilesystemPicker(Environment.getExternalStorageDirectory())
+        AlertDialog.Builder(this)
+            .setTitle("Cấp quyền truy cập")
+            .setMessage("Ứng dụng cần quyền “Storage” để duyệt và quét trực tiếp bằng API tệp của Android, nhanh hơn phương thức SAF. Quyền này có thể được cấp trong Cài đặt hệ thống. Bạn có thể từ chối và ứng dụng vẫn sẽ hoạt động. Bạn có thể chọn cấp quyền bất kỳ lúc nào trong Setting.")
+            .setNegativeButton("Hủy") { _, _ -> safFolderLauncher.launch(null) }
+            .setPositiveButton("Cho phép quyền") { _, _ -> BroadStorageAccess.request(this) }
+            .show()
     }
 
     private fun showFilesystemPicker(start: File) {
         var current = start
         fun render() {
-            val children = current.listFiles()
-                ?.asSequence()
-                ?.filter { it.isDirectory && it.canRead() }
-                ?.sortedBy { it.name.lowercase() }
-                ?.toList()
-                ?: emptyList()
+            val children = current.listFiles()?.asSequence()?.filter { it.isDirectory && it.canRead() }?.sortedBy { it.name.lowercase() }?.toList() ?: emptyList()
             val labels = children.map { it.name }.toTypedArray()
             AlertDialog.Builder(this)
                 .setTitle("Chọn thư mục\n${current.absolutePath}")
                 .setItems(labels) { _, which -> current = children[which]; render() }
-                .setNegativeButton(if (current.absolutePath == start.absolutePath) "Hủy" else "Thư mục cha") { _, _ ->
-                    current.parentFile?.takeIf { it.canRead() }?.let { current = it; render() }
-                }
-                .setNeutralButton("Chọn thư mục này") { _, _ -> onFolderSelected(current) }
+                .setNegativeButton(if (current.absolutePath == start.absolutePath) "Hủy" else "Thư mục cha") { _, _ -> current.parentFile?.takeIf { it.canRead() }?.let { current = it; render() } }
+                .setNeutralButton("Chọn thư mục này") { _, _ -> onFolderSelected(Uri.fromFile(current), current.name.ifBlank { "Internal storage" }, "Filesystem") }
                 .show()
         }
         render()
     }
 
-    private fun onFolderSelected(folder: File) {
-        if (!folder.isDirectory || !folder.canRead()) {
-            Toast.makeText(this, "Không thể đọc thư mục này", Toast.LENGTH_LONG).show()
-            return
-        }
-        val rootUri = Uri.fromFile(folder)
-        val rootFolder = RootFolder(rootUri.toString(), folder.name.ifBlank { "Internal storage" }, System.currentTimeMillis())
+    private fun onFolderSelected(uri: Uri, displayName: String, source: String) {
+        val rootFolder = RootFolder(uri.toString(), displayName, System.currentTimeMillis())
         if (viewModel.rootFolders.value?.any { it.uri == rootFolder.uri } == true) {
             Toast.makeText(this, "Thư mục đã có trong danh sách", Toast.LENGTH_SHORT).show()
             return
@@ -206,11 +200,11 @@ class MainActivity : AppCompatActivity() {
         }
         viewModel.saveRootFolder(rootFolder)
         lifecycleScope.launch {
-            val estimate = withContext(Dispatchers.IO) { Scanner(this@MainActivity, CacheManager(this@MainActivity)).estimateCount(rootUri) }
+            val estimate = withContext(Dispatchers.IO) { Scanner(this@MainActivity, CacheManager(this@MainActivity)).estimateCount(uri) }
             val estimateText = if (estimate >= 100000) "100.000+ mục; có thể mất vài phút" else "$estimate mục"
             AlertDialog.Builder(this@MainActivity)
                 .setTitle("Xác nhận quét")
-                .setMessage("Thư mục: ${rootFolder.displayName}\nĐường dẫn: ${folder.absolutePath}\nƯớc tính: ~$estimateText\n\nQuét trực tiếp filesystem, không dùng SAF.")
+                .setMessage("Thư mục: ${rootFolder.displayName}\nNguồn: $source\nƯớc tính: ~$estimateText\n\nQuét bằng $source.")
                 .setNegativeButton("Để sau", null)
                 .setPositiveButton("Bắt đầu quét") { _, _ -> startScanService(rootFolder.uri, rootFolder.displayName, false) }
                 .show()
