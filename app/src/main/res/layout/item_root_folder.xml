@@ -50,14 +50,5 @@
                 tools:text="30.123 mục • Quét lần cuối: 16/09/2026 14:30" />
         </androidx.appcompat.widget.LinearLayoutCompat>
 
-        <ImageButton
-            android:id="@+id/btn_info"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginStart="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_info_details"
-            android:contentDescription="Tùy chọn thư mục" />
-
     </androidx.appcompat.widget.LinearLayoutCompat>
 </androidx.cardview.widget.CardView>
