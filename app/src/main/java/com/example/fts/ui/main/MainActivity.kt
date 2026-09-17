@@ -7,7 +7,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.provider.Settings
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -30,7 +29,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewModel: MainViewModel
@@ -58,7 +56,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Returning from the Android "All files access" settings screen should continue the flow.
         if (BroadStorageAccess.hasAccess(this) && pendingPermissionRequest) {
             pendingPermissionRequest = false
             showFilesystemPicker(Environment.getExternalStorageDirectory())
@@ -107,9 +104,9 @@ class MainActivity : AppCompatActivity() {
         if (!folder.isDirectory || !folder.canRead()) {
             Toast.makeText(this, "Không thể đọc thư mục này", Toast.LENGTH_LONG).show(); return
         }
-        val rootUri = Uri.fromFile(folder).toString()
-        val rootFolder = RootFolder(rootUri, folder.name.ifBlank { "Internal storage" }, System.currentTimeMillis())
-        if (viewModel.rootFolders.value?.any { it.uri == rootUri } == true) { Toast.makeText(this, "Thư mục đã có trong danh sách", Toast.LENGTH_SHORT).show(); return }
+        val rootUri = Uri.fromFile(folder)
+        val rootFolder = RootFolder(rootUri.toString(), folder.name.ifBlank { "Internal storage" }, System.currentTimeMillis())
+        if (viewModel.rootFolders.value?.any { it.uri == rootFolder.uri } == true) { Toast.makeText(this, "Thư mục đã có trong danh sách", Toast.LENGTH_SHORT).show(); return }
         if ((viewModel.rootFolders.value?.size ?: 0) >= Constants.MAX_FOLDERS) { Toast.makeText(this, "Tối đa ${Constants.MAX_FOLDERS} thư mục", Toast.LENGTH_SHORT).show(); return }
         viewModel.saveRootFolder(rootFolder)
         lifecycleScope.launch {
@@ -127,12 +124,5 @@ class MainActivity : AppCompatActivity() {
     private fun startScanService(rootUri: String, displayName: String, isIncremental: Boolean) {
         val intent = Intent(this, ScanService::class.java).apply { putExtra(Constants.EXTRA_URI, rootUri); putExtra(Constants.EXTRA_DISPLAY_NAME, displayName); putExtra(Constants.EXTRA_INCREMENTAL, isIncremental) }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent) else startService(intent)
-    }
-
-    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean { menuInflater.inflate(R.menu.menu_main, menu); return true }
-    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean = when (item.itemId) {
-        R.id.action_settings -> { startActivity(Intent(this, SettingsActivity::class.java)); true }
-        R.id.action_cache_management -> { startActivity(Intent(this, CacheManageActivity::class.java)); true }
-        else -> super.onOptionsItemSelected(item)
     }
 }
