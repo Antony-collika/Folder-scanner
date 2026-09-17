@@ -10,47 +10,49 @@ import com.example.fts.data.model.RootFolder
 import com.example.fts.util.DateFormatter
 
 class RootFolderAdapter(
-    private val onClick: (RootFolder) -> Unit,
-    private val onScanClick: (RootFolder) -> Unit
+    private val onClick: (RootFolder) -> Unit
 ) : RecyclerView.Adapter<RootFolderAdapter.RootFolderViewHolder>() {
-    
+
     private var rootFolders: List<RootFolder> = emptyList()
-    
+    private var scanProgress: Map<String, Int> = emptyMap()
+
     inner class RootFolderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val nameTextView: TextView = itemView.findViewById(R.id.folderName)
         private val infoTextView: TextView = itemView.findViewById(R.id.folderInfo)
-        private val scanButton: View = itemView.findViewById(R.id.btn_scan)
-        
+
         fun bind(rootFolder: RootFolder) {
             itemView.setOnClickListener { onClick(rootFolder) }
-            scanButton.setOnClickListener { onScanClick(rootFolder) }
-            
             nameTextView.text = rootFolder.displayName
-            
-            val info = buildString {
-                append("${rootFolder.entryCount ?: 0} mục")
-                rootFolder.lastScannedAt?.let { lastScanned ->
-                    append(" • Quét lần cuối: ${DateFormatter.formatDateTime(lastScanned)}")
+
+            val progress = scanProgress[rootFolder.uri]
+            infoTextView.text = if (progress != null) {
+                "Đang quét .  .  .  ${progress.formatCount()} mục"
+            } else {
+                buildString {
+                    append("${(rootFolder.entryCount ?: 0).formatCount()} mục")
+                    rootFolder.lastScannedAt?.let { lastScanned ->
+                        append(" • Quét lần cuối: ${DateFormatter.formatDateTime(lastScanned)}")
+                    }
                 }
             }
-            infoTextView.text = info
         }
     }
-    
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RootFolderViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_root_folder, parent, false)
-        return RootFolderViewHolder(view)
-    }
-    
-    override fun onBindViewHolder(holder: RootFolderViewHolder, position: Int) {
-        holder.bind(rootFolders[position])
-    }
-    
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RootFolderViewHolder =
+        RootFolderViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_root_folder, parent, false))
+
+    override fun onBindViewHolder(holder: RootFolderViewHolder, position: Int) = holder.bind(rootFolders[position])
     override fun getItemCount(): Int = rootFolders.size
-    
+
     fun submitList(newList: List<RootFolder>) {
         rootFolders = newList
         notifyDataSetChanged()
     }
+
+    fun submitScanProgress(progress: Map<String, Int>) {
+        scanProgress = progress
+        notifyDataSetChanged()
+    }
+
+    private fun Int.formatCount(): String = String.format("%,d", this)
 }
