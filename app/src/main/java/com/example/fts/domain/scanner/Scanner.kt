@@ -11,25 +11,26 @@ import com.example.fts.data.model.SnapshotStats
 import com.example.fts.data.saf.SafDocument
 import com.example.fts.data.saf.SafTreeReader
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.io.File
-import kotlin.coroutines.coroutineContext
 
 class Scanner(private val context: Context, private val cacheManager: CacheManager) {
     private val treeReader = SafTreeReader(context)
     private val fileTreeReader = FileTreeReader()
 
     suspend fun scan(rootUri: Uri, rootName: String, options: ScanOptions, previousSnapshot: Snapshot? = null, onProgress: (ScanProgress) -> Unit): Snapshot = withContext(Dispatchers.IO) {
+        val scanContext = currentCoroutineContext()
         val rootEntry = if (rootUri.scheme == "file") {
             val root = File(requireNotNull(rootUri.path) { "Thiếu đường dẫn filesystem" })
             fileTreeReader.readTree(root, options, previousSnapshot?.root) { progress ->
-                coroutineContext.ensureActive()
+                scanContext.ensureActive()
                 onProgress(progress)
             }
         } else {
             treeReader.readTree(rootUri, options, previousSnapshot?.root) { progress ->
-                coroutineContext.ensureActive()
+                scanContext.ensureActive()
                 onProgress(progress)
             }
         }
@@ -44,7 +45,7 @@ class Scanner(private val context: Context, private val cacheManager: CacheManag
         val stack = ArrayDeque<Entry>()
         stack.add(entry)
         while (stack.isNotEmpty()) {
-            coroutineContext.ensureActive()
+            currentCoroutineContext().ensureActive()
             val current = stack.removeLast()
             totalEntries++
             when (current.type) {
@@ -69,7 +70,7 @@ class Scanner(private val context: Context, private val cacheManager: CacheManag
             val stack = ArrayDeque<SafDocument>()
             stack.add(rootDoc)
             while (stack.isNotEmpty() && count < 100001) {
-                coroutineContext.ensureActive()
+                currentCoroutineContext().ensureActive()
                 val doc = stack.removeLast()
                 count++
                 if (doc.isDirectory) doc.listFiles().forEach(stack::add)
@@ -85,7 +86,7 @@ class Scanner(private val context: Context, private val cacheManager: CacheManag
         val stack = ArrayDeque<File>()
         stack.add(root)
         while (stack.isNotEmpty() && count < 100001) {
-            coroutineContext.ensureActive()
+            currentCoroutineContext().ensureActive()
             val file = stack.removeLast()
             count++
             if (file.isDirectory) {
