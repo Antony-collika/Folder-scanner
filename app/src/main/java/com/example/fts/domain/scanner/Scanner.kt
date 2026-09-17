@@ -24,11 +24,13 @@ class Scanner(private val context: Context, private val cacheManager: CacheManag
         val rootEntry = if (rootUri.scheme == "file") {
             val root = File(requireNotNull(rootUri.path) { "Thiếu đường dẫn filesystem" })
             fileTreeReader.readTree(root, options, previousSnapshot?.root) { progress ->
-                coroutineContext.ensureActive(); onProgress(progress)
+                coroutineContext.ensureActive()
+                onProgress(progress)
             }
         } else {
             treeReader.readTree(rootUri, options, previousSnapshot?.root) { progress ->
-                coroutineContext.ensureActive(); onProgress(progress)
+                coroutineContext.ensureActive()
+                onProgress(progress)
             }
         }
         Snapshot(1, rootName, rootUri.toString(), System.currentTimeMillis(), rootEntry, calculateStats(rootEntry))
@@ -39,14 +41,18 @@ class Scanner(private val context: Context, private val cacheManager: CacheManag
         var totalFolders = 0
         var totalFiles = 0
         var totalSize = 0L
-        val stack = ArrayDeque<Entry>(); stack.add(entry)
+        val stack = ArrayDeque<Entry>()
+        stack.add(entry)
         while (stack.isNotEmpty()) {
             coroutineContext.ensureActive()
             val current = stack.removeLast()
             totalEntries++
             when (current.type) {
                 EntryType.FOLDER -> totalFolders++
-                EntryType.FILE -> { totalFiles++; totalSize += current.size ?: 0L }
+                EntryType.FILE -> {
+                    totalFiles++
+                    totalSize += current.size ?: 0L
+                }
             }
             current.children?.forEach(stack::add)
         }
@@ -60,24 +66,34 @@ class Scanner(private val context: Context, private val cacheManager: CacheManag
         try {
             val rootDoc = SafDocument.fromTreeUri(context, rootUri) ?: return@withContext 0
             var count = 0
-            val stack = ArrayDeque<SafDocument>(); stack.add(rootDoc)
+            val stack = ArrayDeque<SafDocument>()
+            stack.add(rootDoc)
             while (stack.isNotEmpty() && count < 100001) {
                 coroutineContext.ensureActive()
-                val doc = stack.removeLast(); count++
+                val doc = stack.removeLast()
+                count++
                 if (doc.isDirectory) doc.listFiles().forEach(stack::add)
             }
             count
-        } catch (_: Exception) { 0 }
+        } catch (_: Exception) {
+            0
+        }
     }
 
-    private fun estimateFilesystem(root: File): Int {
+    private suspend fun estimateFilesystem(root: File): Int {
         var count = 0
-        val stack = ArrayDeque<File>(); stack.add(root)
+        val stack = ArrayDeque<File>()
+        stack.add(root)
         while (stack.isNotEmpty() && count < 100001) {
             coroutineContext.ensureActive()
-            val file = stack.removeLast(); count++
+            val file = stack.removeLast()
+            count++
             if (file.isDirectory) {
-                try { file.listFiles()?.forEach(stack::add) } catch (_: SecurityException) { }
+                try {
+                    file.listFiles()?.forEach(stack::add)
+                } catch (_: SecurityException) {
+                    // Continue estimating other readable branches.
+                }
             }
         }
         return count
