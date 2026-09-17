@@ -1,9 +1,7 @@
 package com.example.fts.ui.settings
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.provider.Settings
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.ListPreference
@@ -35,17 +33,11 @@ class SettingsActivity : AppCompatActivity() {
                 summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
                 setOnPreferenceClickListener { showMarkdownModelPreview(); false }
             }
-
             storagePreference = findPreference("storage_access")
             storagePreference?.setOnPreferenceChangeListener { _, newValue ->
-                if (newValue == true) {
-                    BroadStorageAccess.request(requireContext())
-                } else {
-                    showStorageDisableInfo()
-                }
+                if (newValue == true) BroadStorageAccess.request(requireActivity()) else showStorageDisableInfo()
                 false
             }
-
             findPreference<Preference>("cache_management")?.setOnPreferenceClickListener {
                 startActivity(Intent(requireContext(), CacheManageActivity::class.java))
                 true
@@ -54,20 +46,15 @@ class SettingsActivity : AppCompatActivity() {
 
         override fun onResume() {
             super.onResume()
-            storagePreference?.isChecked = BroadStorageAccess.hasAccess(requireContext())
-            storagePreference?.summary = if (BroadStorageAccess.hasAccess(requireContext())) {
-                "Đã cấp quyền Storage · quét filesystem nhanh hơn"
-            } else {
-                "Chưa cấp quyền · ứng dụng sẽ dùng SAF"
-            }
+            val granted = BroadStorageAccess.hasAccess(requireActivity())
+            storagePreference?.isChecked = granted
+            storagePreference?.summary = if (granted) "Đã cấp quyền Storage · quét filesystem nhanh hơn" else "Chưa cấp quyền · ứng dụng sẽ dùng SAF"
         }
 
         private fun showStorageDisableInfo() {
-            AlertDialog.Builder(requireContext())
-                .setTitle("Quyền Storage")
+            AlertDialog.Builder(requireContext()).setTitle("Quyền Storage")
                 .setMessage("Quyền này không bắt buộc. Khi không có quyền Storage, ứng dụng vẫn hoạt động bằng SAF.")
-                .setPositiveButton("Đóng", null)
-                .show()
+                .setPositiveButton("Đóng", null).show()
         }
 
         private fun showMarkdownModelPreview() {
