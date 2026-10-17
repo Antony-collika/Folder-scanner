@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <Preference
+        android:key="cache_management"
+        android:title="Quản lý cache"
+        android:summary="Xem và xóa snapshot đã lưu" />
+
+    <SwitchPreferenceCompat
+        android:key="storage_access"
+        android:title="Cấp quyền Storage"
+        android:summary="Chưa cấp quyền · ứng dụng sẽ dùng SAF"
+        android:defaultValue="false" />
+
     <ListPreference
         android:key="markdown_model"
         android:title="Mô hình Markdown"

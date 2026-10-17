@@ -50,13 +50,6 @@
                 android:layout_marginTop="10dp"
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 tools:text="45.231 mục  •  8.932 folder  •  36.299 file  •  12,3 GB" />
-            <TextView
-                android:id="@+id/modelLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textAppearance="?attr/textAppearanceLabelLarge"
-                tools:text="Đang hiển thị: Mô hình D · Cây ASCII" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
@@ -101,13 +94,39 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text="Xuất Markdown" />
+                android:text="Xuất MD" />
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/rescanButton"
+                android:id="@+id/exportJsonButton"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text="Quét lại" />
+                android:text="Xuất JSON" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:paddingStart="12dp"
+        android:paddingTop="2dp"
+        android:paddingEnd="12dp">
+        <LinearLayout
+            android:id="@+id/levelContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="56dp"
+                android:gravity="center_vertical"
+                android:text="Level:"
+                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:textStyle="bold"
+                android:paddingStart="4dp"
+                android:paddingEnd="10dp" />
         </LinearLayout>
     </HorizontalScrollView>
 

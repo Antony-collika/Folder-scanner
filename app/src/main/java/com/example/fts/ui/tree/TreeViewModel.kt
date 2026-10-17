@@ -28,6 +28,8 @@ class TreeViewModel(private val rootUri: String, val displayName: String, applic
     val exportResult: LiveData<Result<Unit>> = _exportResult
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> = _isLoading
+    private val _level = MutableLiveData(1)
+    val level: LiveData<Int> = _level
     private var pendingExport: Pair<String, String>? = null
     private var query = ""
 
@@ -37,7 +39,9 @@ class TreeViewModel(private val rootUri: String, val displayName: String, applic
             try {
                 cacheManager.load(rootUri)?.let { snapshot ->
                     _snapshot.value = snapshot
+                    expandedFolders.clear()
                     expandedFolders.add(snapshot.root.documentId)
+                    _level.value = 1
                     updateTree(snapshot)
                 } ?: scanFresh()
             } catch (_: Exception) { _snapshot.value = null }
@@ -48,12 +52,13 @@ class TreeViewModel(private val rootUri: String, val displayName: String, applic
     private suspend fun scanFresh() {
         try {
             val previous = cacheManager.load(rootUri)
-            val snapshot = scanner.scan(Uri.parse(rootUri), displayName, settingsRepository.scanOptions()) { }
+            val snapshot = scanner.scan(Uri.parse(rootUri), displayName, settingsRepository.scanOptions(), previous) { }
             if (previous != null) cacheManager.savePrevious(rootUri, previous)
             cacheManager.save(rootUri, snapshot)
             _snapshot.value = snapshot
             expandedFolders.clear()
             expandedFolders.add(snapshot.root.documentId)
+            _level.value = 1
             updateTree(snapshot)
         } catch (_: Exception) { _snapshot.value = null }
     }
@@ -75,7 +80,43 @@ class TreeViewModel(private val rootUri: String, val displayName: String, applic
     }
 
     fun search(value: String) { query = value.trim(); _snapshot.value?.let(::updateTree) }
-    fun toggleFolder(documentId: String) { if (!expandedFolders.add(documentId)) expandedFolders.remove(documentId); _snapshot.value?.let(::updateTree) }
+
+    fun toggleFolder(documentId: String) {
+        if (!expandedFolders.add(documentId)) expandedFolders.remove(documentId)
+        _snapshot.value?.let(::updateTree)
+    }
+
+    fun setExpandLevel(level: Int) {
+        val snapshot = _snapshot.value ?: return
+        val safeLevel = level.coerceIn(1, maxDepth(snapshot.root).coerceAtLeast(1))
+        expandedFolders.clear()
+        addFoldersThroughDepth(snapshot.root, 0, safeLevel)
+        _level.value = safeLevel
+        updateTree(snapshot)
+    }
+
+    fun expandAll() {
+        val snapshot = _snapshot.value ?: return
+        expandedFolders.clear()
+        addAllFolders(snapshot.root)
+        _level.value = maxDepth(snapshot.root).coerceAtLeast(1)
+        updateTree(snapshot)
+    }
+
+    fun maxLevel(): Int = _snapshot.value?.let { maxDepth(it.root).coerceAtLeast(1) } ?: 1
+
+    private fun addFoldersThroughDepth(entry: Entry, depth: Int, level: Int) {
+        if (entry.type == EntryType.FOLDER) expandedFolders.add(entry.documentId)
+        if (depth + 1 < level) entry.children.orEmpty().forEach { addFoldersThroughDepth(it, depth + 1, level) }
+    }
+
+    private fun addAllFolders(entry: Entry) {
+        if (entry.type == EntryType.FOLDER) expandedFolders.add(entry.documentId)
+        entry.children.orEmpty().forEach(::addAllFolders)
+    }
+
+    private fun maxDepth(entry: Entry, depth: Int = 1): Int = entry.children.orEmpty().maxOfOrNull { maxDepth(it, depth + 1) } ?: depth
+
     fun rescan() { viewModelScope.launch { _isLoading.value = true; scanFresh(); _isLoading.value = false } }
     fun requestShowDiff() { _showDiff.value = true }
     fun prepareExport(content: String, type: String) { pendingExport = content to type }
