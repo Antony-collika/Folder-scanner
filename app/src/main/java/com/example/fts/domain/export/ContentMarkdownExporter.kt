@@ -51,6 +51,8 @@ class ContentMarkdownExporter(private val context: Context) {
                 val text = decodeText(bytes)
                 if (text == null) skipped += file.path to "Có vẻ là tệp nhị phân hoặc không phải UTF-8"
                 else included += file to text
+            } catch (_: FileTooLargeException) {
+                skipped += file.path to "Nội dung thực tế lớn hơn giới hạn mỗi tệp"
             } catch (e: Exception) {
                 skipped += file.path to ("Không đọc được: " + (e.message ?: e.javaClass.simpleName))
             }
@@ -95,7 +97,7 @@ class ContentMarkdownExporter(private val context: Context) {
                 ?: throw IllegalStateException("Không thể liệt kê thư mục: " + directory.absolutePath)
             for (child in children.sortedBy { it.name.lowercase(Locale.ROOT) }) {
                 if (!keep(child.name, child.isDirectory, options)) continue
-                val path = if (parent.isEmpty()) child.name else "$parent/\${child.name}"
+                val path = if (parent.isEmpty()) child.name else "$parent/" + child.name
                 if (child.isDirectory) stack.add(child to path)
                 else if (child.isFile) {
                     val file = child
@@ -141,7 +143,7 @@ class ContentMarkdownExporter(private val context: Context) {
         return true
     }
 
-    private fun readBounded(input: InputStream, maxBytes: Long): ByteArray {
+    private class FileTooLargeException : Exception()\n\n    private fun readBounded(input: InputStream, maxBytes: Long): ByteArray {
         val out = ByteArrayOutputStream()
         val buffer = ByteArray(8192)
         var total = 0L
@@ -150,7 +152,7 @@ class ContentMarkdownExporter(private val context: Context) {
                 val count = it.read(buffer)
                 if (count < 0) break
                 total += count
-                if (total > maxBytes) return out.toByteArray() + byteArrayOf(0)
+                if (total > maxBytes) throw FileTooLargeException()
                 out.write(buffer, 0, count)
             }
         }
