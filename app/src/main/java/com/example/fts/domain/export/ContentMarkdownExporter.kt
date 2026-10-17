@@ -71,7 +71,7 @@ class ContentMarkdownExporter(private val context: Context) {
             if (included.isEmpty()) append("\nKhông có tệp văn bản phù hợp để đưa vào.\n")
             val tick = 96.toChar().toString()
             for ((file, content) in included) {
-                append("\n### ").append(file.path.replace(tick, "\\" + tick)).append("\n\n")
+                append("\n### ").append(file.path.replace(tick.toString(), "\\" + tick)).append("\n\n")
                 val fence = tick.repeat(maxOf(3, longestTickRun(content) + 1))
                 append(fence).append('\n').append(content)
                 if (!content.endsWith("\n")) append('\n')
@@ -80,7 +80,7 @@ class ContentMarkdownExporter(private val context: Context) {
             append("\n## Tệp bị bỏ qua\n\n")
             if (skipped.isEmpty()) append("Không có.\n")
             else for ((path, reason) in skipped) {
-                append("- ").append(tick).append(path.replace(tick, "\\" + tick)).append(tick)
+                append("- ").append(tick).append(path.replace(tick.toString(), "\\" + tick)).append(tick)
                     .append(": ").append(reason).append('\n')
             }
         }
