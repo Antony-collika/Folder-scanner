@@ -143,7 +143,9 @@ class ContentMarkdownExporter(private val context: Context) {
         return true
     }
 
-    private class FileTooLargeException : Exception()\n\n    private fun readBounded(input: InputStream, maxBytes: Long): ByteArray {
+    private class FileTooLargeException : Exception()
+
+    private fun readBounded(input: InputStream, maxBytes: Long): ByteArray {
         val out = ByteArrayOutputStream()
         val buffer = ByteArray(8192)
         var total = 0L
