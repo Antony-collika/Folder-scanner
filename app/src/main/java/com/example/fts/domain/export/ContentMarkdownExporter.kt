@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 import java.nio.ByteBuffer
+import java.nio.file.Files
 import java.nio.charset.CodingErrorAction
 import java.util.Locale
 
@@ -98,7 +99,11 @@ class ContentMarkdownExporter(private val context: Context) {
             for (child in children.sortedBy { it.name.lowercase(Locale.ROOT) }) {
                 if (!keep(child.name, child.isDirectory, options)) continue
                 val path = if (parent.isEmpty()) child.name else "$parent/" + child.name
-                if (child.isDirectory) stack.add(child to path)
+                if (Files.isSymbolicLink(child.toPath())) {
+                    result += SourceFile(path, 0L) {
+                        throw IllegalStateException("Liên kết tượng trưng được bỏ qua để tránh đọc ngoài thư mục gốc")
+                    }
+                } else if (child.isDirectory) stack.add(child to path)
                 else if (child.isFile) {
                     val file = child
                     result += SourceFile(path, file.length()) { file.inputStream() }
