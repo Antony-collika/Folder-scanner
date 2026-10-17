@@ -5,6 +5,7 @@ import androidx.preference.PreferenceManager
 import com.example.fts.data.model.MarkdownModel
 import com.example.fts.data.model.ScanOptions
 import com.example.fts.util.Constants
+import com.example.fts.util.ContentSizeUnits
 
 class SettingsRepository(context: Context) {
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -27,4 +28,36 @@ class SettingsRepository(context: Context) {
     fun sortOrder(): String = preferences.getString("sort_order", "name") ?: "name"
     fun setSortOrder(value: String) { preferences.edit().putString("sort_order", value).apply() }
     fun notificationOnScanComplete(): Boolean = preferences.getBoolean("notification_on_scan_complete", true)
+
+    fun contentRootLimitBytes(): Long = sizeToBytes(
+        preferences.getInt(KEY_ROOT_LIMIT_VALUE, 2),
+        preferences.getString(KEY_ROOT_LIMIT_UNIT, "MB") ?: "MB"
+    )
+    fun contentPerFileLimitBytes(): Long = sizeToBytes(
+        preferences.getInt(KEY_FILE_LIMIT_VALUE, 200),
+        preferences.getString(KEY_FILE_LIMIT_UNIT, "KB") ?: "KB"
+    )
+    fun contentRootLimitValue(): Int = preferences.getInt(KEY_ROOT_LIMIT_VALUE, 2)
+    fun contentRootLimitUnit(): String = preferences.getString(KEY_ROOT_LIMIT_UNIT, "MB") ?: "MB"
+    fun contentPerFileLimitValue(): Int = preferences.getInt(KEY_FILE_LIMIT_VALUE, 200)
+    fun contentPerFileLimitUnit(): String = preferences.getString(KEY_FILE_LIMIT_UNIT, "KB") ?: "KB"
+
+    fun setContentRootLimit(value: Int, unit: String) {
+        require(value > 0 && unit in UNITS)
+        preferences.edit().putInt(KEY_ROOT_LIMIT_VALUE, value).putString(KEY_ROOT_LIMIT_UNIT, unit).apply()
+    }
+    fun setContentPerFileLimit(value: Int, unit: String) {
+        require(value > 0 && unit in UNITS)
+        preferences.edit().putInt(KEY_FILE_LIMIT_VALUE, value).putString(KEY_FILE_LIMIT_UNIT, unit).apply()
+    }
+
+    private fun sizeToBytes(value: Int, unit: String): Long = ContentSizeUnits.toBytes(value, unit)
+
+    companion object {
+        private const val KEY_ROOT_LIMIT_VALUE = "content_root_limit_value"
+        private const val KEY_ROOT_LIMIT_UNIT = "content_root_limit_unit"
+        private const val KEY_FILE_LIMIT_VALUE = "content_file_limit_value"
+        private const val KEY_FILE_LIMIT_UNIT = "content_file_limit_unit"
+        val UNITS = arrayOf("KB", "MB")
+    }
 }

@@ -26,6 +26,7 @@ import com.example.fts.data.cache.CacheManager
 import com.example.fts.data.model.RootFolder
 import com.example.fts.data.repository.SettingsRepository
 import com.example.fts.data.storage.BroadStorageAccess
+import com.example.fts.domain.export.ContentMarkdownExporter
 import com.example.fts.domain.export.JsonExporter
 import com.example.fts.domain.export.MarkdownExporter
 import com.example.fts.domain.scanner.Scanner
@@ -107,9 +108,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showRootActions(root: RootFolder) {
-        val actions = arrayOf("Xem chi tiết", "Xuất Markdown", "Xuất JSON", "Quét lại", "Xóa")
+        val actions = arrayOf("Xem chi tiết", "Xuất Markdown", "Xuất JSON", "Quét lại", "Xóa", "Gom nội dung thành Markdown")
         AlertDialog.Builder(this).setTitle(root.displayName).setItems(actions) { _, which -> when (which) {
-            0 -> openTree(root); 1 -> exportRoot(root, false); 2 -> exportRoot(root, true); 3 -> startScanService(root.uri, root.displayName, true); 4 -> confirmRemoveRoot(root)
+            0 -> openTree(root); 1 -> exportRoot(root, false); 2 -> exportRoot(root, true); 3 -> startScanService(root.uri, root.displayName, true); 4 -> confirmRemoveRoot(root); 5 -> exportRootContent(root)
         } }.show()
     }
 
@@ -122,6 +123,28 @@ class MainActivity : AppCompatActivity() {
             val content = if (json) JsonExporter.export(snapshot) else MarkdownExporter.export(snapshot, settingsRepository.markdownModel(), settingsRepository.showMetadataInMarkdown(), settingsRepository.sortOrder())
             pendingExport = content
             createDocumentLauncher.launch("tree_${root.displayName}_${System.currentTimeMillis()}.${if (json) "json" else "md"}")
+        }
+    }
+
+    private fun exportRootContent(root: RootFolder) {
+        lifecycleScope.launch {
+            try {
+                val content = withContext(Dispatchers.IO) {
+                    ContentMarkdownExporter(this@MainActivity).export(
+                        Uri.parse(root.uri),
+                        root.displayName,
+                        ContentMarkdownExporter.Limits(
+                            settingsRepository.contentRootLimitBytes(),
+                            settingsRepository.contentPerFileLimitBytes()
+                        ),
+                        settingsRepository.scanOptions()
+                    )
+                }
+                pendingExport = content
+                createDocumentLauncher.launch("content_${root.displayName}_${System.currentTimeMillis()}.md")
+            } catch (e: Exception) {
+                Toast.makeText(this@MainActivity, "Không thể tạo Markdown: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
