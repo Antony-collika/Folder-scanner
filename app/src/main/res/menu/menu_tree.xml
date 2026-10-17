@@ -1,5 +1,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
     <item android:id="@+id/action_export_md" android:title="Xuất Markdown" android:icon="@drawable/ic_file_download" app:showAsAction="ifRoom" />
+    <item android:id="@+id/action_export_content_md" android:title="Gom nội dung thành Markdown" android:icon="@drawable/ic_file_download" app:showAsAction="never" />
     <item android:id="@+id/action_export_json" android:title="Xuất JSON" android:icon="@drawable/ic_file_download" app:showAsAction="never" />
     <item android:id="@+id/action_copy_md" android:title="Copy Markdown" app:showAsAction="never" />
     <item android:id="@+id/action_share_md" android:title="Chia sẻ Markdown" app:showAsAction="never" />
