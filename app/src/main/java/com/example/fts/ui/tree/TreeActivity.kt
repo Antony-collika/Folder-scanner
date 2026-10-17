@@ -124,8 +124,6 @@ class TreeActivity : AppCompatActivity() {
         val rootUri = intent.getStringExtra(EXTRA_ROOT_URI) ?: return
         val settings = SettingsRepository(applicationContext)
         lifecycleScope.launch {
-            val item = menuInflater.inflate(R.menu.menu_tree, null).findItem(R.id.action_export_content_md)
-            item?.isEnabled = false
             try {
                 val content = withContext(Dispatchers.IO) {
                     ContentMarkdownExporter(applicationContext).export(
@@ -140,7 +138,6 @@ class TreeActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Toast.makeText(this@TreeActivity, "Không thể tạo Markdown: ${e.message}", Toast.LENGTH_LONG).show()
             } finally {
-                item?.isEnabled = true
             }
         }
     }
