@@ -5,6 +5,7 @@ import androidx.preference.PreferenceManager
 import com.example.fts.data.model.MarkdownModel
 import com.example.fts.data.model.ScanOptions
 import com.example.fts.util.Constants
+import com.example.fts.util.ContentSizeUnits
 
 class SettingsRepository(context: Context) {
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -50,8 +51,7 @@ class SettingsRepository(context: Context) {
         preferences.edit().putInt(KEY_FILE_LIMIT_VALUE, value).putString(KEY_FILE_LIMIT_UNIT, unit).apply()
     }
 
-    private fun sizeToBytes(value: Int, unit: String): Long =
-        value.toLong() * if (unit == "MB") 1024L * 1024L else 1024L
+    private fun sizeToBytes(value: Int, unit: String): Long = ContentSizeUnits.toBytes(value, unit)
 
     companion object {
         private const val KEY_ROOT_LIMIT_VALUE = "content_root_limit_value"
