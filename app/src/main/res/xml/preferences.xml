@@ -2,6 +2,16 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <Preference
+        android:key="content_root_limit"
+        android:title="Tổng dung lượng thư mục gốc"
+        android:summary="Tối đa 2 MB dữ liệu tệp khi gom nội dung" />
+
+    <Preference
+        android:key="content_file_limit"
+        android:title="Dung lượng tối đa mỗi tệp"
+        android:summary="Tối đa 200 KB cho mỗi tệp được đưa vào" />
+
+    <Preference
         android:key="cache_management"
         android:title="Quản lý cache"
         android:summary="Xem và xóa snapshot đã lưu" />
