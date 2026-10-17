@@ -137,7 +137,6 @@ class TreeActivity : AppCompatActivity() {
                 createDocumentLauncher.launch("content_${viewModel.displayName}_${System.currentTimeMillis()}.md")
             } catch (e: Exception) {
                 Toast.makeText(this@TreeActivity, "Không thể tạo Markdown: ${e.message}", Toast.LENGTH_LONG).show()
-            } finally {
             }
         }
     }
