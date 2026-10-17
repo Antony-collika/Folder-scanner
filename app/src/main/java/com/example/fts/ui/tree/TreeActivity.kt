@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.graphics.Typeface
 import android.os.Bundle
 import android.text.*
@@ -12,11 +13,17 @@ import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.fts.R
 import com.example.fts.data.model.Entry
+import com.example.fts.domain.export.ContentMarkdownExporter
 import com.example.fts.domain.export.JsonExporter
 import com.example.fts.domain.export.MarkdownExporter
+import com.example.fts.data.repository.SettingsRepository
 import com.example.fts.ui.diff.DiffActivity
 import com.example.fts.util.DateFormatter
 import com.example.fts.util.FileSizeFormatter
@@ -112,6 +119,31 @@ class TreeActivity : AppCompatActivity() {
     private fun showSortDialog() { val labels = arrayOf("Tên (folder trước, A-Z)", "Ngày sửa (mới nhất)", "Kích thước (lớn nhất)", "Loại (folder trước)"); val values = arrayOf("name", "date", "size", "type"); val current = values.indexOf(viewModel.sortOrder()).coerceAtLeast(0); AlertDialog.Builder(this).setTitle("Sắp xếp cây").setSingleChoiceItems(labels, current) { dialog, which -> viewModel.setSortOrder(values[which]); dialog.dismiss() }.show() }
     private fun exportMarkdown() { currentMarkdown()?.let { viewModel.prepareExport(it, "md"); createDocumentLauncher.launch("tree_${viewModel.displayName}_${System.currentTimeMillis()}.md") } }
     private fun exportJson() { viewModel.snapshot.value?.let { viewModel.prepareExport(JsonExporter.export(it), "json"); createDocumentLauncher.launch("tree_${viewModel.displayName}_${System.currentTimeMillis()}.json") } }
+
+    private fun exportContentMarkdown() {
+        val rootUri = intent.getStringExtra(EXTRA_ROOT_URI) ?: return
+        val settings = SettingsRepository(applicationContext)
+        lifecycleScope.launch {
+            val item = menuInflater.inflate(R.menu.menu_tree, null).findItem(R.id.action_export_content_md)
+            item?.isEnabled = false
+            try {
+                val content = withContext(Dispatchers.IO) {
+                    ContentMarkdownExporter(applicationContext).export(
+                        Uri.parse(rootUri),
+                        viewModel.displayName,
+                        ContentMarkdownExporter.Limits(settings.contentRootLimitBytes(), settings.contentPerFileLimitBytes()),
+                        settings.scanOptions()
+                    )
+                }
+                viewModel.prepareExport(content, "md")
+                createDocumentLauncher.launch("content_${viewModel.displayName}_${System.currentTimeMillis()}.md")
+            } catch (e: Exception) {
+                Toast.makeText(this@TreeActivity, "Không thể tạo Markdown: ${e.message}", Toast.LENGTH_LONG).show()
+            } finally {
+                item?.isEnabled = true
+            }
+        }
+    }
     private fun currentMarkdown(): String? = viewModel.snapshot.value?.let { MarkdownExporter.export(it, viewModel.markdownModel(), viewModel.showMetadataInMarkdown(), viewModel.sortOrder()) }
     private fun showFileDetail(entry: Entry) { val size = entry.size?.let(FileSizeFormatter::format) ?: "N/A"; val details = "Tên: ${entry.name}\nĐường dẫn: ${entry.path}\nNgày sửa: ${DateFormatter.formatDateTime(entry.modified)}\nKích thước: $size\nMIME: ${entry.mime ?: "N/A"}"; AlertDialog.Builder(this).setTitle("Chi tiết file").setMessage(details).setPositiveButton("Copy đường dẫn") { _, _ -> copyPath(entry.path) }.setNegativeButton("Đóng", null).show() }
     private fun copyPath(path: String) { (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Path", path)); Toast.makeText(this, "Đã copy đường dẫn", Toast.LENGTH_SHORT).show() }
@@ -120,6 +152,7 @@ class TreeActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         android.R.id.home -> { finish(); true }
         R.id.action_export_md -> { exportMarkdown(); true }
+        R.id.action_export_content_md -> { exportContentMarkdown(); true }
         R.id.action_export_json -> { exportJson(); true }
         R.id.action_copy_md -> { currentMarkdown()?.let { (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Markdown", it)); Toast.makeText(this, "Đã copy Markdown", Toast.LENGTH_SHORT).show() }; true }
         R.id.action_share_md -> { currentMarkdown()?.let { startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, it) }, "Chia sẻ Markdown")) }; true }
